@@ -49,55 +49,88 @@ app.use(routes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Initialize database with error handling
-(async () => {
-  try {
-    logger.info("Initializing database...");
-    await setupDatabase();
-    logger.info("Database initialized successfully");
-  } catch (error) {
-    logger.error("Database initialization failed:", error.message);
-    logger.warn("Server will continue without database setup");
-  }
-})();
+// Initialize database with error handling (only in non-serverless environments)
+if (process.env.VERCEL !== "1") {
+  (async () => {
+    try {
+      logger.info("Initializing database...");
+      await setupDatabase();
+      logger.info("Database initialized successfully");
+    } catch (error) {
+      logger.error("Database initialization failed:", error.message);
+      logger.warn("Server will continue without database setup");
+    }
+  })();
 
-// Start the server
-const PORT = constants.PORT;
-const HOST = "0.0.0.0";
+  // Start the server (only in non-serverless environments)
+  const PORT = constants.PORT;
+  const HOST = "0.0.0.0";
 
-const server = app.listen(PORT, HOST, (error) => {
-  if (error) {
-    logger.error("Failed to start server:", error);
+  const server = app.listen(PORT, HOST, (error) => {
+    if (error) {
+      logger.error("Failed to start server:", error);
+      process.exit(1);
+    }
+    logger.info("Server started successfully!");
+    logger.info(`Server is listening on ${HOST}:${PORT}`);
+    logger.info(`Health check available at: http://${HOST}:${PORT}/health`);
+    logger.info(`API endpoint available at: http://${HOST}:${PORT}/`);
+  });
+
+  // Handle server errors
+  server.on("error", (error) => {
+    logger.error("Server error:", error);
+    if (error.code === "EADDRINUSE") {
+      logger.error(`Port ${PORT} is already in use`);
+    }
     process.exit(1);
-  }
-  logger.info("Server started successfully!");
-  logger.info(`Server is listening on ${HOST}:${PORT}`);
-  logger.info(`Health check available at: http://${HOST}:${PORT}/health`);
-  logger.info(`API endpoint available at: http://${HOST}:${PORT}/`);
-});
-
-// Handle server errors
-server.on("error", (error) => {
-  logger.error("Server error:", error);
-  if (error.code === "EADDRINUSE") {
-    logger.error(`Port ${PORT} is already in use`);
-  }
-  process.exit(1);
-});
-
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received, shutting down gracefully");
-  server.close(() => {
-    logger.info("Process terminated");
-    process.exit(0);
   });
-});
 
-process.on("SIGINT", () => {
-  logger.info("SIGINT received, shutting down gracefully");
-  server.close(() => {
-    logger.info("Process terminated");
-    process.exit(0);
+  // Graceful shutdown
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received, shutting down gracefully");
+    server.close(() => {
+      logger.info("Process terminated");
+      process.exit(0);
+    });
   });
-});
+
+  process.on("SIGINT", () => {
+    logger.info("SIGINT received, shutting down gracefully");
+    server.close(() => {
+      logger.info("Process terminated");
+      process.exit(0);
+    });
+  });
+} else {
+  // In Vercel/serverless environment, initialize database on first request
+  // This will run once per cold start
+  let dbInitialized = false;
+  let dbInitializing = false;
+  app.use(async (req, res, next) => {
+    if (!dbInitialized && !dbInitializing) {
+      dbInitializing = true;
+      try {
+        logger.info("Initializing database in serverless environment...");
+        await setupDatabase();
+        logger.info("Database initialized successfully");
+        dbInitialized = true;
+      } catch (error) {
+        logger.error("Database initialization failed:", error.message);
+        // Continue anyway - database might already be set up
+        dbInitialized = true; // Mark as initialized to prevent retry loops
+      } finally {
+        dbInitializing = false;
+      }
+    } else if (dbInitializing) {
+      // Wait for initialization to complete
+      while (dbInitializing) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    next();
+  });
+}
+
+// Export app for Vercel serverless functions
+module.exports = app;
