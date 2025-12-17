@@ -1,0 +1,698 @@
+const connectionService = require("../services/connectionService");
+const purchaseService = require("../services/purchaseService");
+const premiumService = require("../services/premiumService");
+const subscriptionService = require("../services/subscriptionService");
+const stripeService = require("../services/stripeService");
+const { successResponse, errorResponse } = require("../utils/responseHelper");
+const logger = require("../utils/logger");
+
+/**
+ * Handle Stripe webhook
+ */
+exports.handleWebhook = async (req, res) => {
+  const stripe = require("../config/stripe");
+  const sig = req.headers["stripe-signature"];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    logger.info("Webhook signature verified");
+  } catch (err) {
+    logger.error("Webhook signature verification failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+  console.log("event", event);
+
+  // Handle different event types
+  try {
+    switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+
+      case "customer.subscription.created":
+        await handleSubscriptionCreated(event.data.object);
+        break;
+
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(event.data.object);
+        break;
+
+      case "invoice.payment_succeeded":
+        await handleInvoicePaymentSucceeded(event.data.object);
+        break;
+
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(event.data.object);
+        break;
+
+      default:
+        logger.info(`Unhandled event type: ${event.type}`);
+    }
+  } catch (error) {
+    logger.error("Error processing webhook:", error);
+  }
+
+  res.json({ received: true });
+};
+
+/**
+ * Handle checkout session completed
+ */
+async function handleCheckoutSessionCompleted(session) {
+  logger.info("Processing checkout session completed:", {
+    sessionId: session.id,
+    paymentStatus: session.payment_status,
+    metadata: session.metadata,
+  });
+
+  const { type } = session.metadata;
+
+  if (type === "contact_purchase") {
+    await handleContactPurchase(session);
+  } else if (type === "premium_subscription") {
+    // For subscriptions, checkout.session.completed happens first
+    // The subscription will be created separately via customer.subscription.created
+    // But we can still handle the initial payment here if needed
+    if (session.mode === "subscription" && session.subscription) {
+      // Subscription was created, will be handled by customer.subscription.created
+      logger.info(
+        "Subscription checkout completed, waiting for subscription.created event"
+      );
+    } else {
+      // Legacy one-time payment
+      await handleTeacherPremiumSubscription(session);
+    }
+  } else if (type === "student_premium_subscription") {
+    // For subscriptions, checkout.session.completed happens first
+    // The subscription will be created separately via customer.subscription.created
+    // But we can still handle the initial payment here if needed
+    if (session.mode === "subscription" && session.subscription) {
+      // Subscription was created, will be handled by customer.subscription.created
+      logger.info(
+        "Student subscription checkout completed, waiting for subscription.created event"
+      );
+    } else {
+      // Legacy one-time payment
+      await handleStudentPremiumSubscription(session);
+    }
+  } else if (type === "teacher_purchase") {
+    await handleTeacherPurchase(session);
+  } else {
+    logger.error("Unknown payment type:", type);
+  }
+}
+
+/**
+ * Handle subscription created
+ */
+async function handleSubscriptionCreated(subscription) {
+  logger.info("Processing subscription created:", {
+    subscriptionId: subscription.id,
+    customerId: subscription.customer,
+    status: subscription.status,
+  });
+
+  try {
+    // Get customer email from Stripe
+    const stripe = require("../config/stripe");
+    const customer = await stripe.customers.retrieve(subscription.customer);
+    const email = customer.email;
+
+    if (!email) {
+      logger.error("No email found for customer:", subscription.customer);
+      return;
+    }
+
+    // Check subscription metadata to determine if it's student or teacher
+    const subscriptionMetadata = subscription.metadata || {};
+    const isStudentSubscription =
+      subscriptionMetadata.studentEmail ||
+      subscriptionMetadata.type === "student_premium_subscription";
+
+    if (isStudentSubscription) {
+      const studentEmail = subscriptionMetadata.studentEmail || email;
+
+      // Update student subscription in database
+      await subscriptionService.updateStudentSubscriptionInDatabase({
+        studentEmail,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.info(`Subscription created for student: ${studentEmail}`);
+    } else {
+      // Teacher subscription
+      await subscriptionService.updateSubscriptionInDatabase({
+        teacherEmail: email,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.info(`Subscription created for teacher: ${email}`);
+    }
+  } catch (error) {
+    logger.error("Error handling subscription created:", error);
+  }
+}
+
+/**
+ * Handle subscription updated
+ */
+async function handleSubscriptionUpdated(subscription) {
+  logger.info("Processing subscription updated:", {
+    subscriptionId: subscription.id,
+    status: subscription.status,
+  });
+
+  try {
+    // Get customer email from Stripe
+    const stripe = require("../config/stripe");
+    const customer = await stripe.customers.retrieve(subscription.customer);
+    const email = customer.email;
+
+    console.log("email", email);
+
+    if (!email) {
+      logger.error("No email found for customer:", subscription.customer);
+      return;
+    }
+
+    // Check subscription metadata to determine if it's student or teacher
+    const subscriptionMetadata = subscription.metadata || {};
+    const isStudentSubscription =
+      subscriptionMetadata.studentEmail ||
+      subscriptionMetadata.type === "student_premium_subscription";
+
+    console.log("isStudentSubscription", isStudentSubscription);
+    console.log("subscriptionMetadata", subscription);
+
+    if (isStudentSubscription) {
+      const studentEmail = subscriptionMetadata.studentEmail || email;
+
+      // Update student subscription in database
+      // await subscriptionService.updateStudentSubscriptionInDatabase({
+      //   studentEmail,
+      //   stripeCustomerId: subscription.customer,
+      //   stripeSubscriptionId: subscription.id,
+      //   subscriptionStatus: subscription.status,
+      //   currentPeriodStart: subscription.current_period_start
+      //     ? new Date(subscription.current_period_start * 1000)
+      //     : null,
+      //   currentPeriodEnd: subscription.current_period_end
+      //     ? new Date(subscription.current_period_end * 1000)
+      //     : null,
+      //   cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+      //   canceledAt: subscription.canceled_at
+      //     ? new Date(subscription.canceled_at * 1000)
+      //     : null,
+      // });
+
+      logger.info(`Subscription updated for student: ${studentEmail}`);
+    } else {
+      // Teacher subscription
+      await subscriptionService.updateSubscriptionInDatabase({
+        teacherEmail: email,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.info(`Subscription updated for teacher: ${email}`);
+    }
+  } catch (error) {
+    logger.error("Error handling subscription updated:", error);
+  }
+}
+
+/**
+ * Handle subscription deleted
+ */
+async function handleSubscriptionDeleted(subscription) {
+  logger.info("Processing subscription deleted:", {
+    subscriptionId: subscription.id,
+  });
+
+  try {
+    // Get customer email from Stripe
+    const stripe = require("../config/stripe");
+    const customer = await stripe.customers.retrieve(subscription.customer);
+    const email = customer.email;
+
+    if (!email) {
+      logger.error("No email found for customer:", subscription.customer);
+      return;
+    }
+
+    // Check subscription metadata to determine if it's student or teacher
+    const subscriptionMetadata = subscription.metadata || {};
+    const isStudentSubscription =
+      subscriptionMetadata.studentEmail ||
+      subscriptionMetadata.type === "student_premium_subscription";
+
+    if (isStudentSubscription) {
+      const studentEmail = subscriptionMetadata.studentEmail || email;
+
+      // Update student subscription in database
+      await subscriptionService.updateStudentSubscriptionInDatabase({
+        studentEmail,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: "canceled",
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : new Date(),
+      });
+
+      logger.info(`Subscription deleted for student: ${studentEmail}`);
+    } else {
+      // Teacher subscription
+      await subscriptionService.updateSubscriptionInDatabase({
+        teacherEmail: email,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: "canceled",
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : new Date(),
+      });
+
+      logger.info(`Subscription deleted for teacher: ${email}`);
+    }
+  } catch (error) {
+    logger.error("Error handling subscription deleted:", error);
+  }
+}
+
+/**
+ * Handle invoice payment succeeded
+ */
+async function handleInvoicePaymentSucceeded(invoice) {
+  logger.info("Processing invoice payment succeeded:", {
+    invoiceId: invoice.id,
+    subscriptionId: invoice.subscription,
+    customerId: invoice.customer,
+  });
+
+  try {
+    if (!invoice.subscription) {
+      // Not a subscription invoice
+      return;
+    }
+
+    // Get subscription from Stripe
+    const stripe = require("../config/stripe");
+    const subscription = await stripe.subscriptions.retrieve(
+      invoice.subscription
+    );
+    const customer = await stripe.customers.retrieve(invoice.customer);
+    const email = customer.email;
+
+    if (!email) {
+      logger.error("No email found for customer:", invoice.customer);
+      return;
+    }
+
+    // Check subscription metadata to determine if it's student or teacher
+    const subscriptionMetadata = subscription.metadata || {};
+    const isStudentSubscription =
+      subscriptionMetadata.studentEmail ||
+      subscriptionMetadata.type === "student_premium_subscription";
+
+    if (isStudentSubscription) {
+      const studentEmail = subscriptionMetadata.studentEmail || email;
+
+      // Update student subscription period dates
+      await subscriptionService.updateStudentSubscriptionInDatabase({
+        studentEmail,
+        stripeCustomerId: invoice.customer,
+        stripeSubscriptionId: invoice.subscription,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.info(`Invoice payment succeeded for student: ${studentEmail}`);
+    } else {
+      // Teacher subscription
+      await subscriptionService.updateSubscriptionInDatabase({
+        teacherEmail: email,
+        stripeCustomerId: invoice.customer,
+        stripeSubscriptionId: invoice.subscription,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.info(`Invoice payment succeeded for teacher: ${email}`);
+    }
+  } catch (error) {
+    logger.error("Error handling invoice payment succeeded:", error);
+  }
+}
+
+/**
+ * Handle invoice payment failed
+ */
+async function handleInvoicePaymentFailed(invoice) {
+  logger.info("Processing invoice payment failed:", {
+    invoiceId: invoice.id,
+    subscriptionId: invoice.subscription,
+    customerId: invoice.customer,
+  });
+
+  try {
+    if (!invoice.subscription) {
+      // Not a subscription invoice
+      return;
+    }
+
+    // Get subscription from Stripe
+    const stripe = require("../config/stripe");
+    const subscription = await stripe.subscriptions.retrieve(
+      invoice.subscription
+    );
+    const customer = await stripe.customers.retrieve(invoice.customer);
+    const email = customer.email;
+
+    if (!email) {
+      logger.error("No email found for customer:", invoice.customer);
+      return;
+    }
+
+    // Check subscription metadata to determine if it's student or teacher
+    const subscriptionMetadata = subscription.metadata || {};
+    const isStudentSubscription =
+      subscriptionMetadata.studentEmail ||
+      subscriptionMetadata.type === "student_premium_subscription";
+
+    // Update subscription status to past_due or unpaid
+    const newStatus =
+      subscription.status === "past_due" ? "past_due" : "unpaid";
+
+    if (isStudentSubscription) {
+      const studentEmail = subscriptionMetadata.studentEmail || email;
+
+      await subscriptionService.updateStudentSubscriptionInDatabase({
+        studentEmail,
+        stripeCustomerId: invoice.customer,
+        stripeSubscriptionId: invoice.subscription,
+        subscriptionStatus: newStatus,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.warn(`Invoice payment failed for student: ${studentEmail}`);
+    } else {
+      // Teacher subscription
+      await subscriptionService.updateSubscriptionInDatabase({
+        teacherEmail: email,
+        stripeCustomerId: invoice.customer,
+        stripeSubscriptionId: invoice.subscription,
+        subscriptionStatus: newStatus,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
+
+      logger.warn(`Invoice payment failed for teacher: ${email}`);
+    }
+  } catch (error) {
+    logger.error("Error handling invoice payment failed:", error);
+  }
+}
+
+/**
+ * Handle contact purchase webhook
+ */
+async function handleContactPurchase(session) {
+  const { requestId, teacherId } = session.metadata;
+
+  if (!requestId || !teacherId) {
+    logger.error(
+      "Missing metadata in contact purchase session:",
+      session.metadata
+    );
+    return;
+  }
+
+  await connectionService.purchaseConnectionRequest(
+    requestId,
+    teacherId,
+    session.id
+  );
+}
+
+/**
+ * Handle teacher purchase webhook
+ */
+async function handleTeacherPurchase(session) {
+  const { studentPostId, teacherId, studentId } = session.metadata;
+
+  if (!studentPostId || !teacherId || !studentId) {
+    logger.error(
+      "Missing metadata in teacher purchase session:",
+      session.metadata
+    );
+    return;
+  }
+
+  const paymentAmount = session.amount_total / 100; // Convert from pence to pounds
+
+  await purchaseService.createOrUpdateTeacherPurchase({
+    studentPostId,
+    teacherId,
+    studentId,
+    stripeSessionId: session.id,
+    paymentAmount,
+  });
+}
+
+/**
+ * Handle teacher premium subscription webhook (legacy one-time payment)
+ */
+async function handleTeacherPremiumSubscription(session) {
+  const { teacherEmail } = session.metadata;
+
+  if (!teacherEmail) {
+    logger.error(
+      "Missing teacher email in premium subscription session:",
+      session.metadata
+    );
+    return;
+  }
+
+  // Only handle one-time payments here
+  // Subscriptions are handled by subscription events
+  if (session.mode === "subscription") {
+    logger.info("Subscription mode detected, skipping legacy payment handler");
+    return;
+  }
+
+  const paymentAmount = session.amount_total / 100;
+
+  await premiumService.updateTeacherPremiumAfterPayment({
+    teacherEmail,
+    stripeSessionId: session.id,
+    paymentAmount,
+  });
+}
+
+/**
+ * Handle student premium subscription webhook (legacy one-time payment)
+ */
+async function handleStudentPremiumSubscription(session) {
+  const { studentEmail, subject, mobile, topix, descripton } = session.metadata;
+
+  if (!studentEmail) {
+    logger.error(
+      "Missing student email in premium subscription session:",
+      session.metadata
+    );
+    return;
+  }
+
+  // Only handle one-time payments here
+  // Subscriptions are handled by subscription events
+  if (session.mode === "subscription") {
+    logger.info("Subscription mode detected, skipping legacy payment handler");
+    return;
+  }
+
+  const paymentAmount = session.amount_total / 100;
+
+  await premiumService.updateStudentPremiumAfterPayment({
+    studentEmail,
+    subject,
+    mobile,
+    topix,
+    descripton,
+    stripeSessionId: session.id,
+    paymentAmount,
+  });
+}
+
+/**
+ * Check payment status
+ */
+exports.checkPaymentStatus = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await stripeService.retrieveSession(sessionId);
+
+    return successResponse(res, {
+      paymentStatus: session.payment_status,
+      metadata: session.metadata,
+      paymentType: session.metadata.type,
+    });
+  } catch (error) {
+    logger.error("Error checking payment:", error);
+    return errorResponse(res, "Failed to check payment status", 500);
+  }
+};
+
+/**
+ * Manual webhook trigger for testing
+ */
+exports.manualWebhookTrigger = async (req, res) => {
+  try {
+    const { sessionId, type } = req.body;
+
+    if (!sessionId) {
+      return errorResponse(res, "Session ID is required", 400);
+    }
+
+    logger.info("Manual webhook trigger for session:", sessionId);
+
+    const session = await stripeService.retrieveSession(sessionId);
+
+    if (!session) {
+      return errorResponse(res, "Session not found", 404);
+    }
+
+    const event = {
+      type: "checkout.session.completed",
+      data: { object: session },
+    };
+
+    if (event.type === "checkout.session.completed") {
+      const sessionData = event.data.object;
+      const { type: sessionType } = sessionData.metadata;
+
+      try {
+        if (sessionType === "contact_purchase") {
+          await handleContactPurchase(sessionData);
+        } else if (sessionType === "premium_subscription") {
+          await handleTeacherPremiumSubscription(sessionData);
+        } else if (sessionType === "student_premium_subscription") {
+          // For subscriptions, checkout.session.completed happens first
+          // The subscription will be created separately via customer.subscription.created
+          if (sessionData.mode === "subscription" && sessionData.subscription) {
+            logger.info(
+              "Student subscription checkout completed, waiting for subscription.created event"
+            );
+          } else {
+            // Legacy one-time payment
+            await handleStudentPremiumSubscription(sessionData);
+          }
+        } else if (sessionType === "teacher_purchase") {
+          await handleTeacherPurchase(sessionData);
+        }
+      } catch (error) {
+        logger.error("Error processing manual webhook:", error);
+        return errorResponse(res, "Failed to process webhook", 500);
+      }
+    }
+
+    return successResponse(res, {
+      message: "Webhook processed successfully",
+      sessionId: sessionId,
+    });
+  } catch (error) {
+    logger.error("Error processing manual webhook:", error);
+    return errorResponse(res, "Failed to process webhook", 500);
+  }
+};

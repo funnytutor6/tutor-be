@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Status Update – {{platformName}}</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333333;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .email-header {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #ffffff;
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .email-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .email-body {
+        padding: 40px 30px;
+      }
+      .email-body h2 {
+        color: #ef4444;
+        font-size: 24px;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+      .email-body p {
+        margin: 15px 0;
+        color: #555555;
+      }
+      .rejection-notice {
+        background-color: #fee2e2;
+        border-left: 4px solid #ef4444;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 4px;
+      }
+      .rejection-notice p {
+        margin: 8px 0;
+        color: #991b1b;
+      }
+      .support-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+      .support-section p {
+        margin: 8px 0;
+      }
+      .email-footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        color: #777777;
+        font-size: 14px;
+      }
+      .email-footer a {
+        color: #ef4444;
+        text-decoration: none;
+      }
+      @media only screen and (max-width: 600px) {
+        .email-container {
+          margin: 0;
+          border-radius: 0;
+        }
+        .email-header,
+        .email-body,
+        .email-footer {
+          padding: 30px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="email-header">
+        <h1>Account Status Update</h1>
+      </div>
+      <div class="email-body">
+        <h2>Hi {{teacherName}},</h2>
+        <p>
+          We regret to inform you that your tutor account application on
+          <strong>{{platformName}}</strong> has been reviewed and unfortunately,
+          we are unable to approve your account at this time.
+        </p>
+
+        <div class="rejection-notice">
+          <p style="font-weight: 600; margin-bottom: 10px">
+            Account Status: Rejected
+          </p>
+          <p>
+            After careful review, we have determined that your application does
+            not meet our current requirements for tutor accounts.
+          </p>
+          {{rejectionReason}}
+        </div>
+
+        <p>
+          If you believe this decision was made in error, or if you have
+          additional information you'd like to share, please don't hesitate to
+          contact our support team.
+        </p>
+
+        <div class="support-section">
+          <p style="font-weight: 600; margin-bottom: 10px; color: #333">
+            Need Help?
+          </p>
+          <p>
+            If you have questions or would like to discuss your application,
+            please contact us at:
+          </p>
+          <p>
+            <strong>Email:</strong>
+            <a
+              href="mailto:{{supportEmail}}"
+              style="color: #ef4444; text-decoration: none"
+              >{{supportEmail}}</a
+            >
+          </p>
+          <p>
+            We're here to help and would be happy to assist you with any
+            questions you may have.
+          </p>
+        </div>
+
+        <p>
+          Thank you for your interest in joining {{platformName}}. We appreciate
+          your understanding.
+        </p>
+
+        <p style="margin-top: 30px">
+          Best regards,<br />
+          <strong>The {{platformName}} Team</strong>
+        </p>
+      </div>
+      <div class="email-footer">
+        <p>© {{currentYear}} {{platformName}}. All rights reserved.</p>
+        <p style="font-size: 12px; color: #999999; margin-top: 10px">
+          This email was sent regarding your tutor account application at
+          {{platformName}}.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

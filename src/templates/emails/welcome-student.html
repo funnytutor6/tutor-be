@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to {{platformName}}</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333333;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .email-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff;
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .email-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .email-body {
+        padding: 40px 30px;
+      }
+      .email-body h2 {
+        color: #667eea;
+        font-size: 24px;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+      .email-body p {
+        margin: 15px 0;
+        color: #555555;
+      }
+      .cta-button {
+        display: inline-block;
+        padding: 14px 30px;
+        margin: 25px 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        text-align: center;
+        transition: transform 0.2s;
+      }
+      .cta-button:hover {
+        transform: translateY(-2px);
+      }
+      .features {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+      .feature-item {
+        margin: 15px 0;
+        padding-left: 30px;
+        position: relative;
+      }
+      .feature-item:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+        font-size: 20px;
+      }
+      .help-section {
+        background-color: #fff8e1;
+        border-left: 4px solid #ffc107;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 4px;
+      }
+      .help-section p {
+        margin: 8px 0;
+      }
+      .email-footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        color: #777777;
+        font-size: 14px;
+      }
+      .email-footer a {
+        color: #667eea;
+        text-decoration: none;
+      }
+      .social-links {
+        margin: 20px 0;
+      }
+      .social-links a {
+        display: inline-block;
+        margin: 0 10px;
+        color: #667eea;
+        text-decoration: none;
+      }
+      @media only screen and (max-width: 600px) {
+        .email-container {
+          margin: 0;
+          border-radius: 0;
+        }
+        .email-header,
+        .email-body,
+        .email-footer {
+          padding: 30px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <!-- Header -->
+      <div class="email-header">
+        <h1>🎉 Welcome to {{platformName}}!</h1>
+      </div>
+
+      <!-- Body -->
+      <div class="email-body">
+        <h2>Hi {{studentName}},</h2>
+
+        <p>
+          Welcome to <strong>{{platformName}}</strong>! We're thrilled to have
+          you join our learning community. You're all set to start exploring
+          courses, connecting with expert tutors, and expanding your skills.
+        </p>
+
+        <div class="features">
+          <p style="font-weight: 600; margin-bottom: 15px; color: #333">
+            Here's what you can do now:
+          </p>
+          <div class="feature-item">
+            Browse hundreds of courses across various subjects
+          </div>
+          <div class="feature-item">
+            Connect with verified and experienced tutors
+          </div>
+          <div class="feature-item">Schedule online or in-person lessons</div>
+          <div class="feature-item">
+            Track your learning progress in your dashboard
+          </div>
+        </div>
+
+        <div style="text-align: center">
+          <a href="{{exploreCoursesLink}}" class="cta-button">
+            🔍 Explore Courses Now
+          </a>
+        </div>
+
+        <p>
+          Not sure where to start? Visit your
+          <a
+            href="{{dashboardLink}}"
+            style="color: #667eea; text-decoration: none; font-weight: 600"
+            >student dashboard</a
+          >
+          to see personalized recommendations and manage your learning journey.
+        </p>
+
+        <p>
+          Happy learning! We can't wait to see all the amazing things you'll
+          accomplish.
+        </p>
+
+        <p style="margin-top: 30px">
+          Best regards,<br />
+          <strong>The {{platformName}} Team</strong>
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <p style="margin-bottom: 15px">
+          <strong>{{platformName}}</strong>
+        </p>
+        <p>Connecting students with expert tutors worldwide</p>
+        <!-- <div class="social-links">
+                <a href="#">Facebook</a> |
+                <a href="#">Twitter</a> |
+                <a href="#">Instagram</a>
+            </div> -->
+        <p style="margin-top: 20px; font-size: 12px; color: #999999">
+          © {{currentYear}} {{platformName}}. All rights reserved.<br />
+          This email was sent to you because you registered for an account at
+          {{platformName}}.
+        </p>
+        <p style="font-size: 12px; color: #999999">
+          <a href="#" style="color: #999999">Unsubscribe</a> |
+          <a href="#" style="color: #999999">Privacy Policy</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
