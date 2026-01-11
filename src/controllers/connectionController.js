@@ -5,6 +5,8 @@ const {
 } = require("../validators/purchaseValidator");
 const logger = require("../utils/logger");
 const { getTeacherById } = require("../services/teacherService");
+const subscriptionService = require("../services/subscriptionService");
+const premiumService = require("../services/premiumService");
 
 /**
  * Send connection request
@@ -41,6 +43,7 @@ exports.sendConnectionRequest = async (req, res) => {
 exports.getConnectionRequestsForTeacher = async (req, res) => {
   try {
     const teacherId = req?.user?.id;
+    const teacherEmail = req?.user?.email;
 
     console.log("Teacher ID:", teacherId);
 
@@ -49,8 +52,25 @@ exports.getConnectionRequestsForTeacher = async (req, res) => {
     if (!teacher) {
       return errorResponse(res, "Teacher not found", 404);
     }
+
+    // Check if teacher has active subscription
+    let hasActiveSubscription = false;
+    try {
+      const subscriptionStatus =
+        await subscriptionService.getSubscriptionStatus(teacherEmail);
+      const premiumStatus = await premiumService.getTeacherPremiumStatus(
+        teacherEmail
+      );
+      hasActiveSubscription =
+        subscriptionStatus?.isActive || premiumStatus?.isPaid;
+    } catch (error) {
+      logger.warn("Error checking subscription status:", error);
+      // Continue without subscription check
+    }
+
     const requests = await connectionService.getConnectionRequestsForTeacher(
-      teacherId
+      teacherId,
+      hasActiveSubscription
     );
 
     return successResponse(res, requests);

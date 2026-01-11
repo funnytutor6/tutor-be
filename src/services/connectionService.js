@@ -41,9 +41,10 @@ const sendConnectionRequest = async (requestData) => {
 /**
  * Get connection requests for teacher
  * @param {String} teacherId - Teacher ID
+ * @param {Boolean} hasActiveSubscription - Whether teacher has active subscription
  * @returns {Promise<Array>} - List of connection requests
  */
-const getConnectionRequestsForTeacher = async (teacherId) => {
+const getConnectionRequestsForTeacher = async (teacherId, hasActiveSubscription = false) => {
   const query = `
     SELECT cr.*, s.name as studentName, s.email as studentEmail, s.phoneNumber,
            tp.headline as postHeadline, tp.subject as postSubject
@@ -53,7 +54,28 @@ const getConnectionRequestsForTeacher = async (teacherId) => {
     WHERE cr.teacherId = ?
     ORDER BY cr.requestDate DESC
   `;
-  return await executeQuery(query, [teacherId]);
+  const requests = await executeQuery(query, [teacherId]);
+  
+  // If teacher has active subscription, auto-reveal contact for pending requests
+  if (hasActiveSubscription) {
+    for (const request of requests) {
+      if (request.status === 'pending') {
+        // Auto-reveal contact by updating status to purchased (free subscription)
+        try {
+          await purchaseConnectionRequest(request.id, teacherId, null);
+          request.status = 'purchased';
+          request.contactRevealed = true;
+          request.paymentStatus = 'free_subscription';
+          request.purchaseDate = new Date();
+        } catch (error) {
+          logger.warn(`Failed to auto-reveal contact for request ${request.id}:`, error);
+          // Continue even if update fails
+        }
+      }
+    }
+  }
+  
+  return requests;
 };
 
 /**
@@ -101,7 +123,7 @@ const getConnectionRequestById = async (requestId) => {
  * Purchase connection request (update status to purchased)
  * @param {String} requestId - Request ID
  * @param {String} teacherId - Teacher ID
- * @param {String} stripeSessionId - Stripe session ID
+ * @param {String} stripeSessionId - Stripe session ID (null for free subscription access)
  * @returns {Promise<void>}
  */
 const purchaseConnectionRequest = async (
@@ -109,20 +131,41 @@ const purchaseConnectionRequest = async (
   teacherId,
   stripeSessionId = null
 ) => {
+  // Check if already purchased
+  const checkQuery = `
+    SELECT status, paymentStatus FROM ConnectionRequests 
+    WHERE id = ? AND teacherId = ?
+  `;
+  const existing = await executeQuery(checkQuery, [requestId, teacherId]);
+  
+  if (existing.length === 0) {
+    throw new Error("Connection request not found");
+  }
+  
+  // If already purchased, skip update
+  if (existing[0].status === 'purchased') {
+    logger.info("Connection request already purchased:", requestId);
+    return;
+  }
+
+  // Determine payment status
+  const paymentStatus = stripeSessionId ? 'paid' : 'free_subscription';
+  
   const updateQuery = `
     UPDATE ConnectionRequests 
-    SET status = 'purchased', paymentStatus = 'paid', contactRevealed = TRUE, purchaseDate = NOW(), stripeSessionId = ?
-    WHERE id = ? AND teacherId = ?
+    SET status = 'purchased', paymentStatus = ?, contactRevealed = TRUE, purchaseDate = NOW(), stripeSessionId = ?
+    WHERE id = ? AND teacherId = ? AND status = 'pending'
   `;
 
   const result = await executeQuery(updateQuery, [
+    paymentStatus,
     stripeSessionId,
     requestId,
     teacherId,
   ]);
 
   if (result.affectedRows === 0) {
-    throw new Error("Connection request not found");
+    throw new Error("Connection request not found or already processed");
   }
 
   logger.info("Connection request purchased successfully:", requestId);

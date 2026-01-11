@@ -1,6 +1,7 @@
 const purchaseService = require("../services/purchaseService");
 const stripeService = require("../services/stripeService");
 const postService = require("../services/postService");
+const connectionService = require("../services/connectionService");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 const {
   validateTeacherPurchase,
@@ -8,6 +9,8 @@ const {
 } = require("../validators/purchaseValidator");
 const logger = require("../utils/logger");
 const teacherService = require("../services/teacherService");
+const subscriptionService = require("../services/subscriptionService");
+const premiumService = require("../services/premiumService");
 
 /**
  * Get teacher purchases
@@ -135,6 +138,7 @@ exports.getStudentContact = async (req, res) => {
 exports.createContactPurchaseCheckout = async (req, res) => {
   try {
     const userId = req?.user?.id;
+    const teacherEmail = req?.user?.email;
     console.log("User ID:", userId);
     const teacher = await teacherService.getTeacherById(userId);
 
@@ -148,6 +152,26 @@ exports.createContactPurchaseCheckout = async (req, res) => {
 
     const { requestId } = req.body;
 
+    // Check if teacher has active subscription
+    let hasActiveSubscription = false;
+    try {
+      const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
+      const premiumStatus = await premiumService.getTeacherPremiumStatus(teacherEmail);
+      hasActiveSubscription = subscriptionStatus?.isActive || premiumStatus?.isPaid;
+    } catch (error) {
+      logger.warn("Error checking subscription status:", error);
+    }
+
+    // If teacher has active subscription, auto-reveal contact without payment
+    if (hasActiveSubscription) {
+      await connectionService.purchaseConnectionRequest(requestId, userId, null);
+      return successResponse(res, {
+        message: "Contact information revealed (Premium subscription)",
+        freeAccess: true,
+      });
+    }
+
+    // Otherwise, create Stripe checkout session
     const session = await stripeService.createContactPurchaseSession({
       requestId,
       teacherId: userId,
