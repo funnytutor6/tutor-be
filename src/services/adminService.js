@@ -333,6 +333,11 @@ const getDashboardMetrics = async () => {
     totalStudentsResult,
     studentPostsResult,
     teacherPostsResult,
+    paidTeacherSubscriptionsResult,
+    totalTeacherSubscriptionsResult,
+    paidStudentSubscriptionsResult,
+    totalStudentSubscriptionsResult,
+    newsletterSubscribersResult,
   ] = await Promise.all([
     executeQuery("SELECT COUNT(*) as count FROM Teachers"),
     executeQuery(
@@ -341,6 +346,15 @@ const getDashboardMetrics = async () => {
     executeQuery("SELECT COUNT(*) as count FROM Students"),
     executeQuery("SELECT COUNT(*) as count FROM StudentPosts"),
     executeQuery("SELECT COUNT(*) as count FROM TeacherPosts"),
+    executeQuery(
+      "SELECT COUNT(*) as count FROM findtutor_premium_teachers WHERE ispaid = TRUE"
+    ),
+    executeQuery("SELECT COUNT(*) as count FROM findtutor_premium_teachers"),
+    executeQuery(
+      "SELECT COUNT(*) as count FROM findtitor_premium_student WHERE ispayed = TRUE"
+    ),
+    executeQuery("SELECT COUNT(*) as count FROM findtitor_premium_student"),
+    executeQuery("SELECT COUNT(*) as count FROM findtutor_subcriptions"),
   ]);
 
   return {
@@ -349,6 +363,11 @@ const getDashboardMetrics = async () => {
     totalStudents: totalStudentsResult[0]?.count || 0,
     studentPosts: studentPostsResult[0]?.count || 0,
     teacherPosts: teacherPostsResult[0]?.count || 0,
+    paidTeacherSubscriptions: paidTeacherSubscriptionsResult[0]?.count || 0,
+    totalTeacherSubscriptions: totalTeacherSubscriptionsResult[0]?.count || 0,
+    paidStudentSubscriptions: paidStudentSubscriptionsResult[0]?.count || 0,
+    totalStudentSubscriptions: totalStudentSubscriptionsResult[0]?.count || 0,
+    newsletterSubscribers: newsletterSubscribersResult[0]?.count || 0,
   };
 };
 
