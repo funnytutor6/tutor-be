@@ -110,6 +110,91 @@ const getStudentContact = async (postId, teacherId) => {
 };
 
 /**
+ * Get student contact information for premium teachers (without purchase requirement)
+ * @param {String} postId - Post ID
+ * @param {String} teacherId - Teacher ID
+ * @returns {Promise<Object>} - Student contact information
+ */
+const getStudentContactForPremium = async (postId, teacherId) => {
+  const query = `
+    SELECT s.name, s.email, s.phoneNumber, sp.subject, sp.headline
+    FROM StudentPosts sp
+    JOIN Students s ON sp.studentId = s.id
+    WHERE sp.id = ?
+  `;
+  const results = await executeQuery(query, [postId]);
+
+  if (results.length === 0) {
+    throw new Error("Student post not found");
+  }
+
+  const post = results[0];
+
+  return {
+    name: post.name,
+    email: post.email,
+    phoneNumber: post.phoneNumber,
+    subject: post.subject,
+    headline: post.headline,
+  };
+};
+
+/**
+ * Create free access purchase for premium teachers
+ * @param {Object} purchaseData - Purchase data
+ * @returns {Promise<String>} - Purchase ID
+ */
+const createFreeAccessPurchase = async (purchaseData) => {
+  const {
+    studentPostId,
+    teacherId,
+    studentId,
+  } = purchaseData;
+
+  // Check if purchase already exists
+  const checkQuery =
+    "SELECT * FROM TeacherPurchases WHERE teacherId = ? AND studentPostId = ?";
+  const existing = await executeQuery(checkQuery, [teacherId, studentPostId]);
+
+  if (existing.length > 0) {
+    // Update existing purchase to paid status if not already paid
+    if (existing[0].paymentStatus !== 'paid') {
+      const updateQuery = `
+        UPDATE TeacherPurchases 
+        SET paymentStatus = 'paid', 
+            phoneNumberAccess = TRUE, 
+            paymentAmount = 0,
+            purchasedAt = NOW(),
+            updated = NOW()
+        WHERE id = ?
+      `;
+      await executeQuery(updateQuery, [existing[0].id]);
+    }
+    logger.info("Free access purchase updated successfully:", existing[0].id);
+    return existing[0].id;
+  }
+
+  // Create new free access purchase
+  const purchaseId = await generateId();
+
+  const createQuery = `
+    INSERT INTO TeacherPurchases 
+    (id, studentPostId, teacherId, studentId, paymentAmount, paymentStatus, phoneNumberAccess, stripeSessionId, purchasedAt, created, updated)
+    VALUES (?, ?, ?, ?, 0, 'paid', TRUE, NULL, NOW(), NOW(), NOW())
+  `;
+
+  await executeQuery(createQuery, [
+    purchaseId,
+    studentPostId,
+    teacherId,
+    studentId,
+  ]);
+
+  logger.info("Free access purchase created successfully:", purchaseId);
+  return purchaseId;
+};
+
+/**
  * Create or update teacher purchase after payment
  * @param {Object} purchaseData - Purchase data from Stripe webhook
  * @returns {Promise<String>} - Purchase ID
@@ -173,5 +258,7 @@ module.exports = {
   checkPurchaseStatus,
   getTeacherPurchaseDetails,
   getStudentContact,
+  getStudentContactForPremium,
+  createFreeAccessPurchase,
   createOrUpdateTeacherPurchase,
 };

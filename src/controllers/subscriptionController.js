@@ -103,3 +103,84 @@ exports.getInvoiceHistory = async (req, res) => {
     return errorResponse(res, "Failed to fetch invoice history", 500);
   }
 };
+
+/**
+ * Cancel student subscription
+ * POST /api/subscriptions/student/cancel
+ */
+exports.cancelStudentSubscription = async (req, res) => {
+  try {
+    const { studentEmail, cancelAtPeriodEnd = false } = req.body;
+
+    if (!studentEmail) {
+      return errorResponse(res, "Student email is required", 400);
+    }
+
+    const canceledSubscription = await subscriptionService.cancelStudentSubscription(
+      studentEmail,
+      cancelAtPeriodEnd
+    );
+
+    return successResponse(res, {
+      message: cancelAtPeriodEnd
+        ? "Subscription will be canceled at the end of the billing period"
+        : "Subscription canceled immediately",
+      subscription: canceledSubscription,
+    });
+  } catch (error) {
+    logger.error("Error canceling student subscription:", error);
+    if (error.message.includes("No active subscription")) {
+      return errorResponse(res, error.message, 404);
+    }
+    return errorResponse(res, "Failed to cancel student subscription", 500);
+  }
+};
+
+/**
+ * Reactivate student subscription
+ * POST /api/subscriptions/student/reactivate
+ */
+exports.reactivateStudentSubscription = async (req, res) => {
+  try {
+    const { studentEmail } = req.body;
+
+    if (!studentEmail) {
+      return errorResponse(res, "Student email is required", 400);
+    }
+
+    const reactivatedSubscription =
+      await subscriptionService.reactivateStudentSubscription(studentEmail);
+
+    return successResponse(res, {
+      message: "Student subscription reactivated successfully",
+      subscription: reactivatedSubscription,
+    });
+  } catch (error) {
+    logger.error("Error reactivating student subscription:", error);
+    if (error.message.includes("No subscription found")) {
+      return errorResponse(res, error.message, 404);
+    }
+    return errorResponse(res, "Failed to reactivate student subscription", 500);
+  }
+};
+
+/**
+ * Get student invoice history
+ * GET /api/subscriptions/student/invoice-history/:studentEmail
+ */
+exports.getStudentInvoiceHistory = async (req, res) => {
+  try {
+    const { studentEmail } = req.params;
+
+    if (!studentEmail) {
+      return errorResponse(res, "Student email is required", 400);
+    }
+
+    const invoices = await subscriptionService.getStudentInvoiceHistory(studentEmail);
+
+    return successResponse(res, invoices);
+  } catch (error) {
+    logger.error("Error fetching student invoice history:", error);
+    return errorResponse(res, "Failed to fetch student invoice history", 500);
+  }
+};

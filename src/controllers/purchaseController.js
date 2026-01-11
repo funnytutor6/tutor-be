@@ -38,6 +38,7 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
     }
 
     const { studentPostId, teacherId, studentId } = req.body;
+    const teacherEmail = req?.user?.email;
 
     // Check if purchase already exists
     const checkResult = await purchaseService.checkPurchaseStatus(
@@ -50,6 +51,35 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
         "Contact access already purchased for this post",
         400
       );
+    }
+
+    // Check if teacher has active subscription/premium
+    let hasActiveSubscription = false;
+    if (teacherEmail) {
+      try {
+        const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
+        const premiumStatus = await premiumService.getTeacherPremiumStatus(teacherEmail);
+        hasActiveSubscription = subscriptionStatus?.isActive || premiumStatus?.isPaid;
+      } catch (error) {
+        logger.warn("Error checking subscription status:", error);
+      }
+    }
+
+    // If teacher has active subscription, auto-grant access without payment
+    if (hasActiveSubscription) {
+      // Create a free access purchase record
+      await purchaseService.createFreeAccessPurchase({
+        studentPostId,
+        teacherId,
+        studentId,
+      });
+      
+      return successResponse(res, {
+        message: "Contact information accessed via premium subscription",
+        freeAccess: true,
+        sessionId: null,
+        url: null,
+      });
     }
 
     // Get student post details
@@ -117,6 +147,27 @@ exports.getTeacherPurchaseDetails = async (req, res) => {
 exports.getStudentContact = async (req, res) => {
   try {
     const { postId, teacherId } = req.params;
+    const teacherEmail = req?.user?.email;
+
+    // Check if teacher has active subscription/premium
+    let hasActiveSubscription = false;
+    if (teacherEmail) {
+      try {
+        const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
+        const premiumStatus = await premiumService.getTeacherPremiumStatus(teacherEmail);
+        hasActiveSubscription = subscriptionStatus?.isActive || premiumStatus?.isPaid;
+      } catch (error) {
+        logger.warn("Error checking subscription status:", error);
+      }
+    }
+
+    // If teacher has premium, get contact directly from post
+    if (hasActiveSubscription) {
+      const contact = await purchaseService.getStudentContactForPremium(postId, teacherId);
+      return successResponse(res, contact);
+    }
+
+    // Otherwise, check if purchase exists
     const contact = await purchaseService.getStudentContact(postId, teacherId);
 
     return successResponse(res, contact);

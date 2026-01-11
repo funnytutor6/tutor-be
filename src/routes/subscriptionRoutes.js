@@ -27,4 +27,21 @@ router.get(
   subscriptionController.getInvoiceHistory
 );
 
+// Student subscription management
+router.post(
+  "/student/cancel",
+  authenticate,
+  subscriptionController.cancelStudentSubscription
+);
+router.post(
+  "/student/reactivate",
+  authenticate,
+  subscriptionController.reactivateStudentSubscription
+);
+router.get(
+  "/student/invoice-history/:studentEmail",
+  authenticate,
+  subscriptionController.getStudentInvoiceHistory
+);
+
 module.exports = router;

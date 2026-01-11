@@ -14,6 +14,7 @@ router.get(
 );
 router.post(
   "/buy/teacher-purchases/create-checkout-session",
+  authenticate,
   validate(validateTeacherPurchase),
   purchaseController.createTeacherPurchaseCheckout
 );
@@ -27,6 +28,7 @@ router.get(
 );
 router.get(
   "/buy/posts/:postId/contact/:teacherId",
+  authenticate,
   purchaseController.getStudentContact
 );
 router.post(
