@@ -369,8 +369,7 @@ const getAllPublicTeacherPosts = async (userId) => {
       s.phoneNumber, 
       s.cityOrTown as studentCityOrTown, 
       s.country as studentCountry, 
-      s.profilePhoto,
-      t.profilePhoto as teacherProfilePhotom,
+      t.profilePhoto,
       t.email`;
   }
 
@@ -476,8 +475,9 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
 
   const query = `
     SELECT tp.*, t.name as teacherName, t.cityOrTown, t.country ${
-      hasStudents &&
-      ", t.name, t.email, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
+      hasStudents
+        ? ", t.name, t.email, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
+        : ""
     } FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
     ORDER BY tp.created DESC
