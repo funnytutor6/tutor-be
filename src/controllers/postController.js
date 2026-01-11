@@ -43,7 +43,6 @@ exports.createStudentPost = async (req, res) => {
     }
     // get stutent post count
     const postCount = await postService.getStudentPostCount(student.id);
-    console.log("Post count:", postCount);
 
     // get premium status
     const premiumStatus = await getStudentPremiumStatus(student.email);
@@ -178,7 +177,6 @@ exports.createTeacherPost = async (req, res) => {
     // get teacher post count
     const postCount = await getTeacherPostCount(user.id);
     const premiumStatus = await getTeacherPremiumStatus(teacher.email);
-    console.log("Premium status:", !premiumStatus.hasPremium);
     if (postCount >= 2 && !premiumStatus.hasPremium) {
       return errorResponse(res, "You can only create 2 posts", 400);
     }
@@ -275,7 +273,6 @@ exports.getStudentPostsByToken = async (req, res) => {
   try {
     const user = req.user;
 
-    console.log("User:", user);
     // check if has student
     const student = await getStudentById(user.id);
     if (!student) {
@@ -331,7 +328,6 @@ exports.getAllPublicTeacherPostsById = async (req, res) => {
       id,
       user?.id || null
     );
-    console.log("Posts:", posts);
     return successResponse(res, posts);
   } catch (error) {
     logger.error("Error fetching teacher posts:", error);

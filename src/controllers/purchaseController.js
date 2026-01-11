@@ -57,9 +57,13 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
     let hasActiveSubscription = false;
     if (teacherEmail) {
       try {
-        const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
-        const premiumStatus = await premiumService.getTeacherPremiumStatus(teacherEmail);
-        hasActiveSubscription = subscriptionStatus?.isActive || premiumStatus?.isPaid;
+        const subscriptionStatus =
+          await subscriptionService.getSubscriptionStatus(teacherEmail);
+        const premiumStatus = await premiumService.getTeacherPremiumStatus(
+          teacherEmail
+        );
+        hasActiveSubscription =
+          subscriptionStatus?.isActive || premiumStatus?.isPaid;
       } catch (error) {
         logger.warn("Error checking subscription status:", error);
       }
@@ -73,7 +77,7 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
         teacherId,
         studentId,
       });
-      
+
       return successResponse(res, {
         message: "Contact information accessed via premium subscription",
         freeAccess: true,
@@ -153,9 +157,13 @@ exports.getStudentContact = async (req, res) => {
     let hasActiveSubscription = false;
     if (teacherEmail) {
       try {
-        const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
-        const premiumStatus = await premiumService.getTeacherPremiumStatus(teacherEmail);
-        hasActiveSubscription = subscriptionStatus?.isActive || premiumStatus?.isPaid;
+        const subscriptionStatus =
+          await subscriptionService.getSubscriptionStatus(teacherEmail);
+        const premiumStatus = await premiumService.getTeacherPremiumStatus(
+          teacherEmail
+        );
+        hasActiveSubscription =
+          subscriptionStatus?.isActive || premiumStatus?.isPaid;
       } catch (error) {
         logger.warn("Error checking subscription status:", error);
       }
@@ -163,7 +171,10 @@ exports.getStudentContact = async (req, res) => {
 
     // If teacher has premium, get contact directly from post
     if (hasActiveSubscription) {
-      const contact = await purchaseService.getStudentContactForPremium(postId, teacherId);
+      const contact = await purchaseService.getStudentContactForPremium(
+        postId,
+        teacherId
+      );
       return successResponse(res, contact);
     }
 
@@ -190,7 +201,6 @@ exports.createContactPurchaseCheckout = async (req, res) => {
   try {
     const userId = req?.user?.id;
     const teacherEmail = req?.user?.email;
-    console.log("User ID:", userId);
     const teacher = await teacherService.getTeacherById(userId);
 
     if (!teacher) {
@@ -206,16 +216,24 @@ exports.createContactPurchaseCheckout = async (req, res) => {
     // Check if teacher has active subscription
     let hasActiveSubscription = false;
     try {
-      const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
-      const premiumStatus = await premiumService.getTeacherPremiumStatus(teacherEmail);
-      hasActiveSubscription = subscriptionStatus?.isActive || premiumStatus?.isPaid;
+      const subscriptionStatus =
+        await subscriptionService.getSubscriptionStatus(teacherEmail);
+      const premiumStatus = await premiumService.getTeacherPremiumStatus(
+        teacherEmail
+      );
+      hasActiveSubscription =
+        subscriptionStatus?.isActive || premiumStatus?.isPaid;
     } catch (error) {
       logger.warn("Error checking subscription status:", error);
     }
 
     // If teacher has active subscription, auto-reveal contact without payment
     if (hasActiveSubscription) {
-      await connectionService.purchaseConnectionRequest(requestId, userId, null);
+      await connectionService.purchaseConnectionRequest(
+        requestId,
+        userId,
+        null
+      );
       return successResponse(res, {
         message: "Contact information revealed (Premium subscription)",
         freeAccess: true,

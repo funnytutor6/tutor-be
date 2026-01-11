@@ -476,8 +476,6 @@ const loginStudent = async (email, password) => {
     role: "student",
   });
 
-  console.log("premiumStatus?.hasPremium --", premiumStatus);
-
   return {
     token,
     student: {

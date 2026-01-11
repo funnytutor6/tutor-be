@@ -320,7 +320,6 @@ const getStudentPostById = async (studentId) => {
 const getStudentPostCount = async (studentId) => {
   const query = "SELECT COUNT(*) FROM StudentPosts WHERE studentId = ?";
   const result = await executeQuery(query, [studentId]);
-  console.log("Result:", result);
   return result[0]["COUNT(*)"];
 };
 
@@ -449,13 +448,7 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
   const studentQuery =
     "SELECT * FROM findtutor_premium_teachers WHERE mail = ?";
   const studentData = await executeQuery(studentQuery, [teacherEmail]);
-  console.log(
-    "Has students:",
-    studentData,
-    executeQuery(studentQuery, [teacherEmail])
-  );
   const hasStudents = studentData?.length > 0 && studentData[0].ispaid === 1;
-  console.log("Has students:", hasStudents);
   const query = `
     SELECT sp.*, s.name as studentName, s.cityOrTown, s.country ${
       hasStudents
@@ -477,7 +470,6 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
  */
 const getAllPublicTeacherPostsById = async (id, userId) => {
   // check if have user in db
-  console.log("User ID:", userId);
   const studentQuery = "SELECT * FROM Students WHERE id = ? AND hasPremium = 1";
   const studentResult = await executeQuery(studentQuery, [userId]);
   const hasStudents = studentResult?.length > 0;

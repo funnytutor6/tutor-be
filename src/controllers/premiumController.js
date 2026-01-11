@@ -10,7 +10,6 @@ const logger = require("../utils/logger");
 exports.checkTeacherPremiumStatus = async (req, res) => {
   try {
     const user = req?.user;
-    console.log("User:", user);
 
     let status = await premiumService.getTeacherPremiumStatus(user.email);
 

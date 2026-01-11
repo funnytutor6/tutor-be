@@ -262,9 +262,6 @@ const updateAdminPassword = async (adminId, currentPassword, newPassword) => {
   }
 
   const admin = admins[0];
-  console.log("admin", admin);
-  console.log("currentPassword", currentPassword);
-  console.log("admin.password", admin.password);
 
   // Verify current password
   const isPasswordValid = await comparePassword(

@@ -21,7 +21,6 @@ exports.uploadImage = async (req, res) => {
     });
 
     const result = await cloudinaryService.uploadImage(req.file.buffer, folder);
-    console.log("Result:", result);
 
     return successResponse(res, {
       message: "Image uploaded successfully",

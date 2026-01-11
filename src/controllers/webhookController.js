@@ -23,7 +23,6 @@ exports.handleWebhook = async (req, res) => {
     logger.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-  console.log("event", event);
 
   // Handle different event types
   try {
@@ -199,8 +198,6 @@ async function handleSubscriptionUpdated(subscription) {
     const customer = await stripe.customers.retrieve(subscription.customer);
     const email = customer.email;
 
-    console.log("email", email);
-
     if (!email) {
       logger.error("No email found for customer:", subscription.customer);
       return;
@@ -211,9 +208,6 @@ async function handleSubscriptionUpdated(subscription) {
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
       subscriptionMetadata.type === "student_premium_subscription";
-
-    console.log("isStudentSubscription", isStudentSubscription);
-    console.log("subscriptionMetadata", subscription);
 
     if (isStudentSubscription) {
       const studentEmail = subscriptionMetadata.studentEmail || email;

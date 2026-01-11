@@ -156,10 +156,6 @@ router.post("/", async (req, res) => {
       paymentAmount,
     ];
 
-    console.log("🔍 Insert params:", params);
-    console.log("📅 Formatted paymentDate:", formattedPaymentDate);
-    console.log("🆔 Generated ID:", id); // This should now show the actual ID, not a Promise
-
     await executeQuery(query, params);
 
     // Return the created record

@@ -230,7 +230,8 @@ const deleteTeacher = async (id) => {
  */
 const getTeacherMetrics = async (teacherId) => {
   // Get posts count
-  const postsQuery = "SELECT COUNT(*) as postsCount FROM TeacherPosts WHERE teacherId = ?";
+  const postsQuery =
+    "SELECT COUNT(*) as postsCount FROM TeacherPosts WHERE teacherId = ?";
   const postsResult = await executeQuery(postsQuery, [teacherId]);
   const postsCount = postsResult[0]?.postsCount || 0;
 

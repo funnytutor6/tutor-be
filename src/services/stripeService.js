@@ -334,7 +334,6 @@ const createStudentPremiumSession = async (sessionData) => {
   // Get or create product and price
   const { priceId } = await getOrCreateStudentPremiumPrice();
 
-  console.log("priceId", priceId);
   // Create or retrieve customer
   let customerId = stripeCustomerId;
   if (!customerId) {

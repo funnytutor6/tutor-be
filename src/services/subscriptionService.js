@@ -46,7 +46,6 @@ const createOrRetrieveCustomer = async (teacherEmail, teacherName) => {
  * @returns {Promise<Object>} - Subscription status
  */
 const getSubscriptionStatus = async (teacherEmail) => {
-  console.log("Teacher email:", teacherEmail);
   const query = `
     SELECT 
       id, mail, ispaid, stripeCustomerId, stripeSubscriptionId, 

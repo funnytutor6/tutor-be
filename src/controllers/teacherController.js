@@ -32,21 +32,6 @@ exports.updateTeacher = async (req, res) => {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    // Handle profile photo upload if file is present
-    if (req.file) {
-      try {
-        const uploadResult = await cloudinaryService.uploadImage(
-          req.file.buffer,
-          "teacher-profiles"
-        );
-        updateData.profilePhoto = uploadResult.secure_url;
-        logger.info("Profile photo uploaded:", updateData.profilePhoto);
-      } catch (uploadError) {
-        logger.warn("Error uploading profile photo:", uploadError);
-        // Continue without photo update
-      }
-    }
-
     await teacherService.updateTeacher(id, updateData);
 
     return successResponse(res, {
@@ -120,7 +105,11 @@ exports.deleteTeacher = async (req, res) => {
 
     // Ensure teacher can only delete their own account
     if (user.id !== id && user.role !== "admin") {
-      return errorResponse(res, "Unauthorized: You can only delete your own account", 403);
+      return errorResponse(
+        res,
+        "Unauthorized: You can only delete your own account",
+        403
+      );
     }
 
     await teacherService.deleteTeacher(id);

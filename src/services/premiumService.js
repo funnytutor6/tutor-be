@@ -254,37 +254,26 @@ const getStudentPremiumStatus = async (studentEmail) => {
     const record = records[0];
     const now = new Date();
 
-    console.log("record", record);
-
     // Check if subscription is active
     let isActive = false;
     if (record.stripeSubscriptionId && record.subscriptionStatus === "active") {
-      console.log("subscription is active");
       // Check if current period hasn't ended
       if (record.currentPeriodEnd) {
-        console.log("current period end", record.currentPeriodEnd);
         const periodEnd = new Date(record.currentPeriodEnd);
         isActive = periodEnd > now && !record.cancelAtPeriodEnd;
-        console.log("isActive", isActive);
       } else {
         isActive = true;
-        console.log("isActive", isActive);
       }
     } else if (record.ispayed && !record.stripeSubscriptionId) {
-      console.log("ispayed and no stripe subscription id");
       // Legacy one-time payment - check if within 1 year
       if (record.paymentDate) {
-        console.log("payment date", record.paymentDate);
         const paymentDate = new Date(record.paymentDate);
         const oneYearLater = new Date(
           paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
         );
         isActive = oneYearLater > now;
-        console.log("isActive", isActive);
       } else {
-        console.log("ispayed", record.ispayed);
         isActive = record.ispayed;
-        console.log("isActive", isActive);
       }
     }
     const premiumStatus = {
@@ -295,8 +284,6 @@ const getStudentPremiumStatus = async (studentEmail) => {
       currentPeriodEnd: record.currentPeriodEnd,
       cancelAtPeriodEnd: record.cancelAtPeriodEnd,
     };
-
-    console.log("premiumStatus ---", premiumStatus);
 
     return premiumStatus;
   }

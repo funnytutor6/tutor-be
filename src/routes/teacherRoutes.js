@@ -9,11 +9,7 @@ const {
 
 router.get("/", authenticate, teacherController.getAllTeachers);
 router.get("/metrics", authenticate, teacherController.getTeacherMetrics);
-router.put(
-  "/:id",
-  upload.single("profilePhoto"),
-  teacherController.updateTeacher
-);
+router.put("/:id", authenticate, teacherController.updateTeacher);
 router.delete("/:id", authenticate, teacherController.deleteTeacher);
 router.get(
   "/public/:id",

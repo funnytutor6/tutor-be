@@ -45,8 +45,6 @@ exports.getConnectionRequestsForTeacher = async (req, res) => {
     const teacherId = req?.user?.id;
     const teacherEmail = req?.user?.email;
 
-    console.log("Teacher ID:", teacherId);
-
     // get teacher by id
     const teacher = await getTeacherById(teacherId);
     if (!teacher) {
