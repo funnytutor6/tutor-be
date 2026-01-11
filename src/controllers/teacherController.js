@@ -136,3 +136,23 @@ exports.deleteTeacher = async (req, res) => {
     return errorResponse(res, "Failed to delete account", 500);
   }
 };
+
+/**
+ * Get teacher metrics (posts count, connection request counts)
+ */
+exports.getTeacherMetrics = async (req, res) => {
+  try {
+    const teacherId = req?.user?.id;
+
+    if (!teacherId) {
+      return errorResponse(res, "Teacher ID is required", 400);
+    }
+
+    const metrics = await teacherService.getTeacherMetrics(teacherId);
+
+    return successResponse(res, metrics);
+  } catch (error) {
+    logger.error("Error fetching teacher metrics:", error);
+    return errorResponse(res, "Failed to fetch teacher metrics", 500);
+  }
+};

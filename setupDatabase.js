@@ -120,9 +120,11 @@ const setupDatabase = async () => {
         AND TABLE_NAME = 'findtutor_premium_teachers' 
         AND COLUMN_NAME = 'stripeCustomerId'
       `);
-      
+
       if (columns.length === 0) {
-        logger.info("Adding subscription columns to findtutor_premium_teachers...");
+        logger.info(
+          "Adding subscription columns to findtutor_premium_teachers..."
+        );
         await connection.query(`
           ALTER TABLE findtutor_premium_teachers
           ADD COLUMN stripeCustomerId VARCHAR(255) NULL AFTER paymentAmount,
@@ -139,7 +141,10 @@ const setupDatabase = async () => {
         logger.info("Subscription columns added successfully");
       }
     } catch (error) {
-      logger.warn("Error adding subscription columns (may already exist):", error.message);
+      logger.warn(
+        "Error adding subscription columns (may already exist):",
+        error.message
+      );
     }
 
     // Add subscription columns to student premium table if they don't exist (for existing databases)
@@ -151,9 +156,11 @@ const setupDatabase = async () => {
         AND TABLE_NAME = 'findtitor_premium_student' 
         AND COLUMN_NAME = 'stripeCustomerId'
       `);
-      
+
       if (studentColumns.length === 0) {
-        logger.info("Adding subscription columns to findtitor_premium_student...");
+        logger.info(
+          "Adding subscription columns to findtitor_premium_student..."
+        );
         await connection.query(`
           ALTER TABLE findtitor_premium_student
           ADD COLUMN stripeCustomerId VARCHAR(255) NULL AFTER paymentAmount,
@@ -167,10 +174,15 @@ const setupDatabase = async () => {
           ADD INDEX idx_stripe_subscription (stripeSubscriptionId),
           ADD INDEX idx_subscription_status (subscriptionStatus)
         `);
-        logger.info("Subscription columns added to student premium table successfully");
+        logger.info(
+          "Subscription columns added to student premium table successfully"
+        );
       }
     } catch (error) {
-      logger.warn("Error adding subscription columns to student table (may already exist):", error.message);
+      logger.warn(
+        "Error adding subscription columns to student table (may already exist):",
+        error.message
+      );
     }
 
     // Subscriptions Table

@@ -223,6 +223,41 @@ const deleteTeacher = async (id) => {
   }
 };
 
+/**
+ * Get teacher metrics (posts count, connection request counts)
+ * @param {String} teacherId - Teacher ID
+ * @returns {Promise<Object>} - Teacher metrics
+ */
+const getTeacherMetrics = async (teacherId) => {
+  // Get posts count
+  const postsQuery = "SELECT COUNT(*) as postsCount FROM TeacherPosts WHERE teacherId = ?";
+  const postsResult = await executeQuery(postsQuery, [teacherId]);
+  const postsCount = postsResult[0]?.postsCount || 0;
+
+  // Get connection request counts
+  const requestsQuery = `
+    SELECT 
+      COUNT(*) as totalRequests,
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendingRequests,
+      SUM(CASE WHEN status = 'purchased' THEN 1 ELSE 0 END) as purchasedRequests
+    FROM ConnectionRequests 
+    WHERE teacherId = ?
+  `;
+  const requestsResult = await executeQuery(requestsQuery, [teacherId]);
+  const requestCounts = requestsResult[0] || {
+    totalRequests: 0,
+    pendingRequests: 0,
+    purchasedRequests: 0,
+  };
+
+  return {
+    postsCount: parseInt(postsCount),
+    totalRequests: parseInt(requestCounts.totalRequests) || 0,
+    pendingRequests: parseInt(requestCounts.pendingRequests) || 0,
+    purchasedRequests: parseInt(requestCounts.purchasedRequests) || 0,
+  };
+};
+
 module.exports = {
   getTeacherById,
   updateTeacher,
@@ -230,4 +265,5 @@ module.exports = {
   getAllPublicTeachers,
   getPublicTeacherById,
   deleteTeacher,
+  getTeacherMetrics,
 };

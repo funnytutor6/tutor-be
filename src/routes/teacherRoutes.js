@@ -8,6 +8,7 @@ const {
 } = require("../middleware/authMiddleware");
 
 router.get("/", authenticate, teacherController.getAllTeachers);
+router.get("/metrics", authenticate, teacherController.getTeacherMetrics);
 router.put(
   "/:id",
   upload.single("profilePhoto"),
