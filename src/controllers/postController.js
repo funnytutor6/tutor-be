@@ -46,7 +46,7 @@ exports.createStudentPost = async (req, res) => {
     console.log("Post count:", postCount);
 
     // get premium status
-    const premiumStatus = await getStudentPremiumStatus(student.id);
+    const premiumStatus = await getStudentPremiumStatus(student.email);
     if (postCount >= 2 && !premiumStatus.hasPremium) {
       return errorResponse(res, "You can only create 2 posts", 400);
     }

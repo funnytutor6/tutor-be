@@ -287,8 +287,7 @@ const getStudentPremiumStatus = async (studentEmail) => {
         console.log("isActive", isActive);
       }
     }
-
-    return {
+    const premiumStatus = {
       hasPremium: true,
       isPaid: isActive,
       premiumData: record,
@@ -296,6 +295,10 @@ const getStudentPremiumStatus = async (studentEmail) => {
       currentPeriodEnd: record.currentPeriodEnd,
       cancelAtPeriodEnd: record.cancelAtPeriodEnd,
     };
+
+    console.log("premiumStatus ---", premiumStatus);
+
+    return premiumStatus;
   }
 
   return {

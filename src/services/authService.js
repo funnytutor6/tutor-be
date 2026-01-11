@@ -401,7 +401,7 @@ const completeStudentRegistration = async (studentId) => {
   });
 
   // Get student premium status
-  const premiumStatus = await getStudentPremiumStatus(student.id);
+  const premiumStatus = await getStudentPremiumStatus(student.email);
 
   return {
     token,
@@ -466,8 +466,8 @@ const loginStudent = async (email, password) => {
   }
 
   // Get student premium status
-  const premiumStatus = await getStudentPremiumStatus(student.id);
-  logger.info("Student logged in successfully:", student.id);
+  const premiumStatus = await getStudentPremiumStatus(student.email);
+  logger.info("Student logged in successfully:", student.id, premiumStatus);
 
   // Generate JWT token
   const token = generateToken({
@@ -475,6 +475,8 @@ const loginStudent = async (email, password) => {
     email: student.email,
     role: "student",
   });
+
+  console.log("premiumStatus?.hasPremium --", premiumStatus);
 
   return {
     token,
