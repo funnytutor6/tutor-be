@@ -39,6 +39,7 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
       );
       return true;
     }
+    console.log("otpCode", otpCode);
 
     // Clean phone number (remove spaces, dashes, etc.)
     const cleanPhoneNumber = phoneNumber.replace(/[\s\-\(\)]/g, "");
@@ -84,6 +85,7 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
 
     return true;
   } catch (error) {
+    console.log(error);
     // Log detailed error
     if (error.response) {
       // WhatsApp API returned an error
@@ -207,6 +209,7 @@ const sendOTP = async (userId, userType, phoneNumber) => {
   //   OTP_RESEND_COOLDOWN_SECONDS,
   // ]);
 
+  // console.log("recent", recent);
   // if (recent.length > 0) {
   //   const lastSent = new Date(recent[0].lastSentAt);
   //   const now = new Date();
@@ -221,6 +224,7 @@ const sendOTP = async (userId, userType, phoneNumber) => {
   // Create or update OTP
   const otpRecord = await createOrUpdateOTP(userId, userType, phoneNumber);
 
+  console.log("otpRecord", otpRecord);
   // Send OTP via WhatsApp
   //   await sendWhatsAppOTP(phoneNumber, otpRecord.otpCode);
 
@@ -493,6 +497,8 @@ const sendPasswordResetOTP = async (userId, userType, email) => {
     name: userName,
     otpCode: otpRecord.otpCode,
   });
+
+  console.log("otpRecord", otpRecord);
 
   return {
     success: true,

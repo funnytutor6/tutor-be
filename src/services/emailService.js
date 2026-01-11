@@ -369,7 +369,9 @@ const sendPasswordResetOTPEmail = async ({ email, name, otpCode }) => {
       html,
     });
 
-    logger.info(`Password reset OTP email sent to: ${email}`);
+    logger.info(
+      `Password reset OTP email sent to: ${email} otp code: ${otpCode}`
+    );
     return true;
   } catch (error) {
     logger.error(`Error sending password reset OTP email to ${email}:`, error);
