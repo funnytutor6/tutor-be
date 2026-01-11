@@ -116,10 +116,11 @@ exports.cancelStudentSubscription = async (req, res) => {
       return errorResponse(res, "Student email is required", 400);
     }
 
-    const canceledSubscription = await subscriptionService.cancelStudentSubscription(
-      studentEmail,
-      cancelAtPeriodEnd
-    );
+    const canceledSubscription =
+      await subscriptionService.cancelStudentSubscription(
+        studentEmail,
+        cancelAtPeriodEnd
+      );
 
     return successResponse(res, {
       message: cancelAtPeriodEnd
@@ -176,7 +177,9 @@ exports.getStudentInvoiceHistory = async (req, res) => {
       return errorResponse(res, "Student email is required", 400);
     }
 
-    const invoices = await subscriptionService.getStudentInvoiceHistory(studentEmail);
+    const invoices = await subscriptionService.getStudentInvoiceHistory(
+      studentEmail
+    );
 
     return successResponse(res, invoices);
   } catch (error) {
