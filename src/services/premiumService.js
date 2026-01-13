@@ -256,11 +256,22 @@ const getStudentPremiumStatus = async (studentEmail) => {
 
     // Check if subscription is active
     let isActive = false;
+    let nextPaymentDate = null;
+    let daysRemaining = null;
+
+    console.log("record", record);
+
     if (record.stripeSubscriptionId && record.subscriptionStatus === "active") {
       // Check if current period hasn't ended
       if (record.currentPeriodEnd) {
         const periodEnd = new Date(record.currentPeriodEnd);
         isActive = periodEnd > now && !record.cancelAtPeriodEnd;
+        if (isActive && !record.cancelAtPeriodEnd) {
+          nextPaymentDate = periodEnd;
+          daysRemaining = Math.ceil(
+            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+        }
       } else {
         isActive = true;
       }
@@ -272,17 +283,56 @@ const getStudentPremiumStatus = async (studentEmail) => {
           paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
         );
         isActive = oneYearLater > now;
+        if (isActive) {
+          nextPaymentDate = oneYearLater;
+          daysRemaining = Math.ceil(
+            (oneYearLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+        }
       } else {
         isActive = record.ispayed;
       }
     }
+
     const premiumStatus = {
       hasPremium: true,
       isPaid: isActive,
-      premiumData: record,
+      premiumData: {
+        id: record.id,
+        email: record.email,
+        subject: record.subject,
+        mobile: record.mobile,
+        topix: record.topix,
+        descripton: record.descripton,
+        ispayed: record.ispayed,
+        paymentDate: record.paymentDate,
+        paymentAmount: record.paymentAmount,
+        stripeCustomerId: record.stripeCustomerId,
+        stripeSubscriptionId: record.stripeSubscriptionId,
+        subscriptionStatus: record.subscriptionStatus,
+        currentPeriodStart: record.currentPeriodStart,
+        currentPeriodEnd: record.currentPeriodEnd,
+        cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+        canceledAt: record.canceledAt,
+        created: record.created,
+        updated: record.updated,
+        stripeSessionId: record.stripeSessionId,
+      },
       subscriptionStatus: record.subscriptionStatus,
+      currentPeriodStart: record.currentPeriodStart,
       currentPeriodEnd: record.currentPeriodEnd,
       cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+      canceledAt: record.canceledAt,
+      paymentDate: record.paymentDate,
+      paymentAmount: record.paymentAmount,
+      nextPaymentDate: nextPaymentDate,
+      daysRemaining: daysRemaining,
+      subscriptionPlan: {
+        amount: record.paymentAmount || 29,
+        currency: "USD",
+        interval: "month", // All subscriptions are monthly
+        name: "Premium Student Subscription",
+      },
     };
 
     return premiumStatus;

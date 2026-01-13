@@ -457,6 +457,27 @@ const getCustomerInvoices = async (customerId) => {
   });
 };
 
+/**
+ * Create customer portal session for managing subscription and payment methods
+ * @param {String} customerId - Stripe customer ID
+ * @param {String} returnUrl - URL to return to after portal session
+ * @returns {Promise<Object>} - Stripe billing portal session
+ */
+const createCustomerPortalSession = async (customerId, returnUrl) => {
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+
+    logger.info("Customer portal session created:", session.id);
+    return session;
+  } catch (error) {
+    logger.error("Error creating customer portal session:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   createContactPurchaseSession,
   createTeacherPurchaseSession,
@@ -471,4 +492,5 @@ module.exports = {
   createOrRetrieveCustomer,
   getOrCreateTeacherPremiumPrice,
   getOrCreateStudentPremiumPrice,
+  createCustomerPortalSession,
 };

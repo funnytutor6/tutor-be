@@ -24,6 +24,7 @@ exports.handleWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  console.log("event", event.data.object);
   // Handle different event types
   try {
     switch (event.type) {
@@ -213,22 +214,22 @@ async function handleSubscriptionUpdated(subscription) {
       const studentEmail = subscriptionMetadata.studentEmail || email;
 
       // Update student subscription in database
-      // await subscriptionService.updateStudentSubscriptionInDatabase({
-      //   studentEmail,
-      //   stripeCustomerId: subscription.customer,
-      //   stripeSubscriptionId: subscription.id,
-      //   subscriptionStatus: subscription.status,
-      //   currentPeriodStart: subscription.current_period_start
-      //     ? new Date(subscription.current_period_start * 1000)
-      //     : null,
-      //   currentPeriodEnd: subscription.current_period_end
-      //     ? new Date(subscription.current_period_end * 1000)
-      //     : null,
-      //   cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-      //   canceledAt: subscription.canceled_at
-      //     ? new Date(subscription.canceled_at * 1000)
-      //     : null,
-      // });
+      await subscriptionService.updateStudentSubscriptionInDatabase({
+        studentEmail,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null,
+        currentPeriodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at * 1000)
+          : null,
+      });
 
       logger.info(`Subscription updated for student: ${studentEmail}`);
     } else {

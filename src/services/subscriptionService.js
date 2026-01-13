@@ -133,41 +133,68 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
   const existing = await executeQuery(checkQuery, [teacherEmail]);
 
   if (existing.length > 0) {
-    // Update existing record
-    const updateQuery = `
-      UPDATE findtutor_premium_teachers 
-      SET 
-        stripeCustomerId = ?,
-        stripeSubscriptionId = ?,
-        subscriptionStatus = ?,
-        currentPeriodStart = ?,
-        currentPeriodEnd = ?,
-        cancelAtPeriodEnd = ?,
-        canceledAt = ?,
-        ispaid = ?,
-        updated = CURRENT_TIMESTAMP
-      WHERE mail = ?
-    `;
+    // Build dynamic UPDATE query - only update fields that are not null
+    const updateFields = [];
+    const updateValues = [];
+
+    // Always update these fields if provided
+    if (stripeCustomerId !== undefined && stripeCustomerId !== null) {
+      updateFields.push("stripeCustomerId = ?");
+      updateValues.push(stripeCustomerId);
+    }
+    if (stripeSubscriptionId !== undefined && stripeSubscriptionId !== null) {
+      updateFields.push("stripeSubscriptionId = ?");
+      updateValues.push(stripeSubscriptionId);
+    }
+    if (subscriptionStatus !== undefined && subscriptionStatus !== null) {
+      updateFields.push("subscriptionStatus = ?");
+      updateValues.push(subscriptionStatus);
+    }
+
+    // Only update date fields if they are not null
+    if (currentPeriodStart !== undefined && currentPeriodStart !== null) {
+      updateFields.push("currentPeriodStart = ?");
+      updateValues.push(currentPeriodStart);
+    }
+    if (currentPeriodEnd !== undefined && currentPeriodEnd !== null) {
+      updateFields.push("currentPeriodEnd = ?");
+      updateValues.push(currentPeriodEnd);
+    }
+    if (canceledAt !== undefined && canceledAt !== null) {
+      updateFields.push("canceledAt = ?");
+      updateValues.push(canceledAt);
+    }
+
+    // Always update cancelAtPeriodEnd (boolean, can be false)
+    if (cancelAtPeriodEnd !== undefined) {
+      updateFields.push("cancelAtPeriodEnd = ?");
+      updateValues.push(cancelAtPeriodEnd || false);
+    }
 
     // Set ispaid based on subscription status
     const isPaid =
       subscriptionStatus === "active" || subscriptionStatus === "trialing";
+    updateFields.push("ispaid = ?");
+    updateValues.push(isPaid);
 
-    await executeQuery(updateQuery, [
-      stripeCustomerId,
-      stripeSubscriptionId,
-      subscriptionStatus,
-      currentPeriodStart,
-      currentPeriodEnd,
-      cancelAtPeriodEnd || false,
-      canceledAt,
-      isPaid,
-      teacherEmail,
-    ]);
+    // Always update the updated timestamp
+    updateFields.push("updated = CURRENT_TIMESTAMP");
 
-    logger.info(
-      `Updated subscription in database for teacher: ${teacherEmail}`
-    );
+    if (updateFields.length > 0) {
+      const updateQuery = `
+        UPDATE findtutor_premium_teachers 
+        SET ${updateFields.join(", ")}
+        WHERE mail = ?
+      `;
+
+      updateValues.push(teacherEmail);
+
+      await executeQuery(updateQuery, updateValues);
+
+      logger.info(
+        `Updated subscription in database for teacher: ${teacherEmail}`
+      );
+    }
   } else {
     // Create new record
     const id = await generateId();
@@ -469,6 +496,7 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     canceledAt,
   } = subscriptionData;
 
+  console.log("subscriptionData", subscriptionData);
   // Check if record exists
   const checkQuery = `
     SELECT id FROM findtitor_premium_student WHERE email = ?
@@ -476,41 +504,68 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
   const existing = await executeQuery(checkQuery, [studentEmail]);
 
   if (existing.length > 0) {
-    // Update existing record
-    const updateQuery = `
-      UPDATE findtitor_premium_student 
-      SET 
-        stripeCustomerId = ?,
-        stripeSubscriptionId = ?,
-        subscriptionStatus = ?,
-        currentPeriodStart = ?,
-        currentPeriodEnd = ?,
-        cancelAtPeriodEnd = ?,
-        canceledAt = ?,
-        ispayed = ?,
-        updated = CURRENT_TIMESTAMP
-      WHERE email = ?
-    `;
+    // Build dynamic UPDATE query - only update fields that are not null
+    const updateFields = [];
+    const updateValues = [];
+
+    // Always update these fields if provided
+    if (stripeCustomerId !== undefined && stripeCustomerId !== null) {
+      updateFields.push("stripeCustomerId = ?");
+      updateValues.push(stripeCustomerId);
+    }
+    if (stripeSubscriptionId !== undefined && stripeSubscriptionId !== null) {
+      updateFields.push("stripeSubscriptionId = ?");
+      updateValues.push(stripeSubscriptionId);
+    }
+    if (subscriptionStatus !== undefined && subscriptionStatus !== null) {
+      updateFields.push("subscriptionStatus = ?");
+      updateValues.push(subscriptionStatus);
+    }
+
+    // Only update date fields if they are not null
+    if (currentPeriodStart !== undefined && currentPeriodStart !== null) {
+      updateFields.push("currentPeriodStart = ?");
+      updateValues.push(currentPeriodStart);
+    }
+    if (currentPeriodEnd !== undefined && currentPeriodEnd !== null) {
+      updateFields.push("currentPeriodEnd = ?");
+      updateValues.push(currentPeriodEnd);
+    }
+    if (canceledAt !== undefined && canceledAt !== null) {
+      updateFields.push("canceledAt = ?");
+      updateValues.push(canceledAt);
+    }
+
+    // Always update cancelAtPeriodEnd (boolean, can be false)
+    if (cancelAtPeriodEnd !== undefined) {
+      updateFields.push("cancelAtPeriodEnd = ?");
+      updateValues.push(cancelAtPeriodEnd || false);
+    }
 
     // Set ispayed based on subscription status
     const isPaid =
       subscriptionStatus === "active" || subscriptionStatus === "trialing";
+    updateFields.push("ispayed = ?");
+    updateValues.push(isPaid);
 
-    await executeQuery(updateQuery, [
-      stripeCustomerId,
-      stripeSubscriptionId,
-      subscriptionStatus,
-      currentPeriodStart,
-      currentPeriodEnd,
-      cancelAtPeriodEnd || false,
-      canceledAt,
-      isPaid,
-      studentEmail,
-    ]);
+    // Always update the updated timestamp
+    updateFields.push("updated = CURRENT_TIMESTAMP");
 
-    logger.info(
-      `Updated subscription in database for student: ${studentEmail}`
-    );
+    if (updateFields.length > 0) {
+      const updateQuery = `
+        UPDATE findtitor_premium_student 
+        SET ${updateFields.join(", ")}
+        WHERE email = ?
+      `;
+
+      updateValues.push(studentEmail);
+
+      await executeQuery(updateQuery, updateValues);
+
+      logger.info(
+        `Updated subscription in database for student: ${studentEmail}`
+      );
+    }
   } else {
     // Create new record
     const id = await generateId();

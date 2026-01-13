@@ -28,6 +28,11 @@ router.get(
 );
 
 // Student subscription management
+router.get(
+  "/student/status",
+  authenticate,
+  subscriptionController.getStudentSubscriptionStatus
+);
 router.post(
   "/student/cancel",
   authenticate,
@@ -38,8 +43,13 @@ router.post(
   authenticate,
   subscriptionController.reactivateStudentSubscription
 );
+router.post(
+  "/student/customer-portal",
+  authenticate,
+  subscriptionController.createStudentCustomerPortalSession
+);
 router.get(
-  "/student/invoice-history/:studentEmail",
+  "/student/invoice-history",
   authenticate,
   subscriptionController.getStudentInvoiceHistory
 );
