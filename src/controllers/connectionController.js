@@ -5,8 +5,11 @@ const {
 } = require("../validators/purchaseValidator");
 const logger = require("../utils/logger");
 const { getTeacherById } = require("../services/teacherService");
+const { getStudentById } = require("../services/studentService");
 const subscriptionService = require("../services/subscriptionService");
 const premiumService = require("../services/premiumService");
+const emailService = require("../services/emailService");
+const { executeQuery } = require("../services/databaseService");
 
 /**
  * Send connection request
@@ -18,7 +21,42 @@ exports.sendConnectionRequest = async (req, res) => {
       return res.status(400).json({ error: validation.errors.join(", ") });
     }
 
+    const { studentId, teacherId, postId, message } = req.body;
+
     const requestId = await connectionService.sendConnectionRequest(req.body);
+
+    // Send email notification to teacher (with admin CC)
+    // Fetch data asynchronously and send email - don't block the response
+    (async () => {
+      try {
+        // Fetch teacher information
+        const teacher = await getTeacherById(teacherId);
+        
+        // Fetch student information
+        const student = await getStudentById(studentId);
+        
+        // Fetch post information
+        const postQuery = "SELECT headline, subject FROM TeacherPosts WHERE id = ?";
+        const posts = await executeQuery(postQuery, [postId]);
+        const post = posts[0];
+
+        if (teacher && student && post) {
+          await emailService.sendConnectionRequestNotification({
+            teacherEmail: teacher.email,
+            teacherName: teacher.name,
+            studentName: student.name,
+            studentEmail: student.email,
+            studentPhone: student.phoneNumber || null,
+            postHeadline: post.headline,
+            postSubject: post.subject,
+            message: message || null,
+          });
+        }
+      } catch (error) {
+        logger.error("Error sending connection request email notification:", error);
+        // Don't throw - email failure shouldn't break the request
+      }
+    })();
 
     return successResponse(
       res,
@@ -155,5 +193,25 @@ exports.getRequestStatus = async (req, res) => {
   } catch (error) {
     logger.error("Error checking request status:", error);
     return errorResponse(res, "Failed to check request status", 500);
+  }
+};
+
+/**
+ * Get connection requests for student
+ */
+exports.getConnectionRequestsForStudent = async (req, res) => {
+  try {
+    const studentId = req?.user?.id || req?.user?.studentId;
+
+    if (!studentId) {
+      return errorResponse(res, "Student ID not found", 400);
+    }
+
+    const requests = await connectionService.getConnectionRequestsForStudent(studentId);
+
+    return successResponse(res, requests);
+  } catch (error) {
+    logger.error("Error fetching connection requests for student:", error);
+    return errorResponse(res, "Failed to fetch connection requests", 500);
   }
 };

@@ -60,16 +60,19 @@ exports.createTeacherPremiumCheckout = async (req, res) => {
  */
 exports.updateTeacherPremiumContent = async (req, res) => {
   try {
-    const { teacherEmail } = req.body;
+    const user = req?.user;
     const { contentData } = req.body;
 
-    if (!teacherEmail) {
-      return errorResponse(res, "Teacher email is required", 400);
+    if (!user || !user.email) {
+      return errorResponse(res, "Authentication required", 401);
     }
 
     if (!contentData) {
       return errorResponse(res, "Content data is required", 400);
     }
+
+    // Use authenticated user's email for security
+    const teacherEmail = user.email;
 
     const updated = await premiumService.updateTeacherPremiumContent(
       teacherEmail,
@@ -85,7 +88,8 @@ exports.updateTeacherPremiumContent = async (req, res) => {
     logger.error("Error updating premium content:", error);
     if (
       error.message.includes("required") ||
-      error.message.includes("not found")
+      error.message.includes("not found") ||
+      error.message.includes("Premium subscription")
     ) {
       return errorResponse(res, error.message, 403);
     }

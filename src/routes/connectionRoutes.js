@@ -23,6 +23,11 @@ router.get(
   connectionController.getConnectionRequestCount
 );
 router.get(
+  "/connect/requests/student",
+  authenticate,
+  connectionController.getConnectionRequestsForStudent
+);
+router.get(
   "/connect/requests/:requestId",
   connectionController.getConnectionRequestById
 );

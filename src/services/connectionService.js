@@ -201,6 +201,34 @@ const getRequestStatus = async (postId, studentId) => {
   };
 };
 
+/**
+ * Get connection requests for student
+ * @param {String} studentId - Student ID
+ * @returns {Promise<Array>} - List of connection requests sent by student
+ */
+const getConnectionRequestsForStudent = async (studentId) => {
+  const query = `
+    SELECT 
+      cr.message, 
+      cr.status, 
+      cr.requestDate, 
+      t.name as teacherName, 
+      tp.headline as postHeadline, 
+      tp.subject as postSubject,
+      tp.description as postDescription,
+      tp.lessonType as postLessonType,
+      tp.location as postLocation
+    FROM ConnectionRequests cr
+    JOIN Teachers t ON cr.teacherId = t.id
+    JOIN TeacherPosts tp ON cr.postId = tp.id
+    WHERE cr.studentId = ?
+    ORDER BY cr.requestDate DESC
+  `;
+  const requests = await executeQuery(query, [studentId]);
+  
+  return requests;
+};
+
 module.exports = {
   sendConnectionRequest,
   getConnectionRequestsForTeacher,
@@ -208,4 +236,5 @@ module.exports = {
   getConnectionRequestById,
   purchaseConnectionRequest,
   getRequestStatus,
+  getConnectionRequestsForStudent,
 };

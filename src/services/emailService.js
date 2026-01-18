@@ -15,7 +15,7 @@ const EMAIL_CONFIG = {
 };
 
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
-const PLATFORM_NAME = process.env.PLATFORM_NAME || "Funny Tutor";
+const PLATFORM_NAME = process.env.PLATFORM_NAME || "Funny Study Learning Academy";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
@@ -32,6 +32,8 @@ const createTransporter = () => {
     );
     return null;
   }
+
+  console.log(EMAIL_CONFIG);
 
   return nodemailer.createTransport(EMAIL_CONFIG);
 };
@@ -75,20 +77,49 @@ const processTemplate = (template, data) => {
 };
 
 /**
+ * Get all admin emails from database
+ * @returns {Promise<Array<String>>} - Array of admin email addresses
+ */
+const getAllAdminEmails = async () => {
+  try {
+    const { executeQuery } = require("./databaseService");
+    const admins = await executeQuery("SELECT email FROM Admins");
+    
+    // Get admin emails from database or fallback to ADMIN_EMAIL env variable
+    const adminEmails =
+      admins.length > 0
+        ? admins.map((admin) => admin.email)
+        : ADMIN_EMAIL
+        ? [ADMIN_EMAIL]
+        : [];
+
+    return adminEmails;
+  } catch (error) {
+    logger.error("Error fetching admin emails:", error);
+    // Fallback to ADMIN_EMAIL env variable
+    return ADMIN_EMAIL ? [ADMIN_EMAIL] : [];
+  }
+};
+
+/**
  * Send email
  * @param {Object} options - Email options
  * @param {String} options.to - Recipient email
  * @param {String} options.subject - Email subject
  * @param {String} options.html - HTML content
  * @param {String} options.text - Plain text content (optional)
+ * @param {String|Array<String>} options.cc - CC recipients (optional)
  * @returns {Promise<Boolean>} - True if sent successfully
  */
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, cc }) => {
   const transporter = createTransporter();
 
   // If email not configured, log the email instead
   if (!transporter) {
     logger.info(`[EMAIL - DEV MODE] Would send email to ${to}`);
+    if (cc) {
+      logger.info(`CC: ${Array.isArray(cc) ? cc.join(", ") : cc}`);
+    }
     logger.info(`Subject: ${subject}`);
     logger.info(`Content: ${text || html.substring(0, 200)}...`);
     return true;
@@ -96,18 +127,24 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
   try {
     const mailOptions = {
-      from: `"${PLATFORM_NAME}" <${FROM_EMAIL}>`,
+      from: `Funny Study Learning Academy <info@funnystudylearning.com>`,
       to,
       subject,
       html,
       text: text || html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
     };
 
+    // Add CC if provided
+    if (cc) {
+      mailOptions.cc = cc;
+    }
+
     const info = await transporter.sendMail(mailOptions);
 
     logger.info(`Email sent successfully to ${to}:`, {
       messageId: info.messageId,
       subject,
+      cc: cc || "none",
     });
 
     return true;
@@ -457,6 +494,142 @@ const sendPasswordResetSuccessEmail = async ({ email, name }) => {
   }
 };
 
+/**
+ * Send email change notification to user and CC admin
+ * @param {Object} data - User data
+ * @param {String} data.oldEmail - Old email address
+ * @param {String} data.newEmail - New email address
+ * @param {String} data.name - User name
+ * @param {String} data.userType - User type ('teacher' or 'student')
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendEmailChangeNotification = async ({ oldEmail, newEmail, name, userType }) => {
+  try {
+    const template = await loadTemplate("email-change-notification");
+
+    // Get all admin emails for CC
+    const adminEmails = await getAllAdminEmails();
+
+    const changeDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Prepare template data
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      userName: name,
+      userType: userType === "teacher" ? "Teacher" : "Student",
+      oldEmail: oldEmail,
+      newEmail: newEmail,
+      changeDate: changeDate,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    // Send email to old email address (with admin CC)
+    const oldEmailPromise = sendEmail({
+      to: oldEmail,
+      subject: `Email Address Changed – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    }).catch((error) => {
+      logger.error(`Error sending email change notification to old email ${oldEmail}:`, error);
+      // Don't throw - continue to send to new email
+    });
+
+    // Send email to new email address (with admin CC)
+    const newEmailPromise = sendEmail({
+      to: newEmail,
+      subject: `Email Address Changed – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    }).catch((error) => {
+      logger.error(`Error sending email change notification to new email ${newEmail}:`, error);
+      // Don't throw - at least we tried
+    });
+
+    // Wait for both emails to be sent (or fail gracefully)
+    await Promise.all([oldEmailPromise, newEmailPromise]);
+
+    logger.info(
+      `Email change notification sent to old email: ${oldEmail} and new email: ${newEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending email change notification:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send connection request notification to teacher and CC admin
+ * @param {Object} data - Connection request data
+ * @param {String} data.teacherEmail - Teacher email address
+ * @param {String} data.teacherName - Teacher name
+ * @param {String} data.studentName - Student name
+ * @param {String} data.studentEmail - Student email
+ * @param {String} data.studentPhone - Student phone (optional)
+ * @param {String} data.postHeadline - Post headline
+ * @param {String} data.postSubject - Post subject
+ * @param {String} data.message - Student message (optional)
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendConnectionRequestNotification = async ({
+  teacherEmail,
+  teacherName,
+  studentName,
+  postHeadline,
+  postSubject
+}) => {
+  try {
+    const template = await loadTemplate("connection-request-notification");
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName,
+      studentName: studentName,
+      postHeadline: postHeadline,
+      postSubject: postSubject,
+      requestDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    // Get all admin emails for CC
+    const adminEmails = await getAllAdminEmails();
+
+    // Send email to teacher with admin CC
+    await sendEmail({
+      to: teacherEmail,
+      subject: `New Connection Request – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Connection request notification sent to teacher: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending connection request notification to ${teacherEmail}:`, error);
+    return false;
+  }
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -467,6 +640,9 @@ module.exports = {
   sendTeacherRejectionEmail,
   sendPasswordResetOTPEmail,
   sendPasswordResetSuccessEmail,
+  sendEmailChangeNotification,
+  sendConnectionRequestNotification,
+  getAllAdminEmails,
   loadTemplate,
   processTemplate,
 };

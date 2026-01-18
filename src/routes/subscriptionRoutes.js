@@ -27,6 +27,13 @@ router.get(
   subscriptionController.getInvoiceHistory
 );
 
+// Create customer portal session for teacher
+router.post(
+  "/customer-portal",
+  authenticate,
+  subscriptionController.createCustomerPortalSession
+);
+
 // Student subscription management
 router.get(
   "/student/status",

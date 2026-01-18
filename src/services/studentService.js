@@ -41,6 +41,18 @@ const updateStudent = async (id, updateData) => {
   const { name, email, phoneNumber, location, country, profilePhoto } =
     updateData;
 
+  // Get current student data to check if email is changing
+  let currentStudent = null;
+  let emailChanged = false;
+  if (email !== undefined) {
+    try {
+      currentStudent = await getStudentById(id);
+      emailChanged = currentStudent.email !== email;
+    } catch (error) {
+      // If student not found, we'll handle it later
+    }
+  }
+
   // Build update query dynamically
   const updateFields = [];
   const updateValues = [];
@@ -88,7 +100,25 @@ const updateStudent = async (id, updateData) => {
 
   logger.info("Student profile updated successfully:", id);
 
-  return await getStudentById(id);
+  const updatedStudent = await getStudentById(id);
+
+  // Send email change notification if email was changed
+  if (emailChanged && currentStudent) {
+    const emailService = require("./emailService");
+    emailService
+      .sendEmailChangeNotification({
+        oldEmail: currentStudent.email,
+        newEmail: updatedStudent.email,
+        name: updatedStudent.name,
+        userType: "student",
+      })
+      .catch((error) => {
+        logger.error("Failed to send email change notification:", error);
+        // Continue even if email fails
+      });
+  }
+
+  return updatedStudent;
 };
 
 /**

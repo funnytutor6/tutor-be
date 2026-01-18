@@ -43,6 +43,18 @@ const updateTeacher = async (id, updateData) => {
   const { name, email, phoneNumber, cityOrTown, country, profilePhoto } =
     updateData;
 
+  // Get current teacher data to check if email is changing
+  let currentTeacher = null;
+  let emailChanged = false;
+  if (email !== undefined) {
+    try {
+      currentTeacher = await getTeacherById(id);
+      emailChanged = currentTeacher.email !== email;
+    } catch (error) {
+      // If teacher not found, we'll handle it later
+    }
+  }
+
   // Build update query dynamically
   const updateFields = [];
   const updateValues = [];
@@ -93,7 +105,25 @@ const updateTeacher = async (id, updateData) => {
 
   logger.info("Teacher profile updated successfully:", id);
 
-  return await getTeacherById(id);
+  const updatedTeacher = await getTeacherById(id);
+
+  // Send email change notification if email was changed
+  if (emailChanged && currentTeacher) {
+    const emailService = require("./emailService");
+    emailService
+      .sendEmailChangeNotification({
+        oldEmail: currentTeacher.email,
+        newEmail: updatedTeacher.email,
+        name: updatedTeacher.name,
+        userType: "teacher",
+      })
+      .catch((error) => {
+        logger.error("Failed to send email change notification:", error);
+        // Continue even if email fails
+      });
+  }
+
+  return updatedTeacher;
 };
 
 /**

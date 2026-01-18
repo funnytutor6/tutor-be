@@ -215,6 +215,52 @@ exports.getStudentSubscriptionStatus = async (req, res) => {
 };
 
 /**
+ * Create customer portal session for teacher
+ * POST /api/subscriptions/customer-portal
+ */
+exports.createCustomerPortalSession = async (req, res) => {
+  try {
+    const user = req?.user;
+
+    if (!user?.email) {
+      return errorResponse(res, "Teacher email is required", 400);
+    }
+
+    // Get teacher subscription to find customer ID
+    const subscriptionStatus =
+      await subscriptionService.getSubscriptionStatus(user.email);
+
+    if (
+      !subscriptionStatus.hasSubscription ||
+      !subscriptionStatus.subscription?.stripeCustomerId
+    ) {
+      return errorResponse(
+        res,
+        "No active subscription found for this teacher",
+        404
+      );
+    }
+
+    const customerId = subscriptionStatus.subscription.stripeCustomerId;
+    const returnUrl = `${constants.FRONTEND_URL}/dashboard/teacher?tab=premium`;
+
+    const session = await stripeService.createCustomerPortalSession(
+      customerId,
+      returnUrl
+    );
+
+    return successResponse(res, { url: session.url });
+  } catch (error) {
+    logger.error("Error creating customer portal session:", error);
+    return errorResponse(
+      res,
+      "Failed to create customer portal session",
+      500
+    );
+  }
+};
+
+/**
  * Create customer portal session for student
  * POST /api/subscriptions/student/customer-portal
  */

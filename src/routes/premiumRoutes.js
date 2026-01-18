@@ -14,6 +14,7 @@ router.post(
 );
 router.post(
   "/update-premium-content",
+  authenticate,
   premiumController.updateTeacherPremiumContent
 );
 router.get(

@@ -20,11 +20,20 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
 
     // Check if subscription is active
     let isActive = false;
+    let nextPaymentDate = null;
+    let daysRemaining = null;
+
     if (record.stripeSubscriptionId && record.subscriptionStatus === "active") {
       // Check if current period hasn't ended
       if (record.currentPeriodEnd) {
         const periodEnd = new Date(record.currentPeriodEnd);
         isActive = periodEnd > now && !record.cancelAtPeriodEnd;
+        if (isActive && !record.cancelAtPeriodEnd) {
+          nextPaymentDate = periodEnd;
+          daysRemaining = Math.ceil(
+            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+        }
       } else {
         isActive = true;
       }
@@ -36,19 +45,62 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
           paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
         );
         isActive = oneYearLater > now;
+        if (isActive) {
+          nextPaymentDate = oneYearLater;
+          daysRemaining = Math.ceil(
+            (oneYearLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+        }
       } else {
         isActive = record.ispaid;
       }
     }
 
-    return {
+    const premiumStatus = {
       hasPremium: true,
       isPaid: isActive,
-      premiumData: record,
+      premiumData: {
+        id: record.id,
+        mail: record.mail,
+        link_or_video: record.link_or_video,
+        link1: record.link1,
+        link2: record.link2,
+        link3: record.link3,
+        video1: record.video1,
+        video2: record.video2,
+        video3: record.video3,
+        ispaid: record.ispaid,
+        paymentDate: record.paymentDate,
+        paymentAmount: record.paymentAmount,
+        stripeCustomerId: record.stripeCustomerId,
+        stripeSubscriptionId: record.stripeSubscriptionId,
+        subscriptionStatus: record.subscriptionStatus,
+        currentPeriodStart: record.currentPeriodStart,
+        currentPeriodEnd: record.currentPeriodEnd,
+        cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+        canceledAt: record.canceledAt,
+        created: record.created,
+        updated: record.updated,
+        stripeSessionId: record.stripeSessionId,
+      },
       subscriptionStatus: record.subscriptionStatus,
+      currentPeriodStart: record.currentPeriodStart,
       currentPeriodEnd: record.currentPeriodEnd,
       cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+      canceledAt: record.canceledAt,
+      paymentDate: record.paymentDate,
+      paymentAmount: record.paymentAmount,
+      nextPaymentDate: nextPaymentDate,
+      daysRemaining: daysRemaining,
+      subscriptionPlan: {
+        amount: record.paymentAmount || 29,
+        currency: "USD",
+        interval: "month", // All subscriptions are monthly
+        name: "Premium Teaching Subscription",
+      },
     };
+
+    return premiumStatus;
   }
 
   return {
@@ -182,9 +234,18 @@ const updateTeacherSubscriptionStatus = async (subscriptionData) => {
 const updateTeacherPremiumContent = async (teacherEmail, contentData) => {
   // Check if teacher has active premium (subscription or legacy payment)
   const premiumStatus = await getTeacherPremiumStatus(teacherEmail);
+  
+  // Also check subscription status for active subscriptions
+  const subscriptionService = require("./subscriptionService");
+  const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
 
-  if (!premiumStatus.hasPremium || !premiumStatus.isPaid) {
-    throw new Error("Premium subscription required or not found");
+  // Allow update if teacher has active premium (either legacy paid or active subscription)
+  const hasActivePremium = 
+    (premiumStatus.hasPremium && premiumStatus.isPaid) || 
+    subscriptionStatus.isActive;
+
+  if (!hasActivePremium) {
+    throw new Error("Active premium subscription required to update content");
   }
 
   const checkQuery = "SELECT * FROM findtutor_premium_teachers WHERE mail = ?";

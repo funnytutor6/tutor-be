@@ -474,16 +474,33 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
   const hasStudents = studentResult?.length > 0;
 
   const query = `
-    SELECT tp.*, t.name as teacherName, t.cityOrTown, t.country ${
+    SELECT tp.*, t.name as teacherName, t.cityOrTown, t.country, t.email ${
       hasStudents
-        ? ", t.name, t.email, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
+        ? ", t.name, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
         : ""
     } FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
+    WHERE tp.id = ?
     ORDER BY tp.created DESC
   `;
   const posts = await executeQuery(query, [id]);
-  return posts[0] || null;
+
+  const post = posts[0] || null;
+  const email = post?.email || null;
+  if (!hasStudents && post) {
+    post.email = null;
+  }
+
+  const premiumStatus = await getTeacherPremiumStatus(email);
+
+  if (premiumStatus.hasPremium) {
+    post.videoLinks = {
+      link1: premiumStatus?.premiumData?.link1 || null,
+      link2: premiumStatus?.premiumData?.link2 || null,
+      link3: premiumStatus?.premiumData?.link3 || null,
+    };
+  }
+  return post;
 };
 module.exports = {
   getAllStudentPosts,
