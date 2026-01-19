@@ -93,10 +93,10 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
       nextPaymentDate: nextPaymentDate,
       daysRemaining: daysRemaining,
       subscriptionPlan: {
-        amount: record.paymentAmount || 29,
+        amount: record.paymentAmount || 15,
         currency: "USD",
         interval: "month", // All subscriptions are monthly
-        name: "Premium Teaching Subscription",
+        name: "Premium Student Subscription",
       },
     };
 
@@ -389,7 +389,7 @@ const getStudentPremiumStatus = async (studentEmail) => {
       nextPaymentDate: nextPaymentDate,
       daysRemaining: daysRemaining,
       subscriptionPlan: {
-        amount: record.paymentAmount || 29,
+        amount: record.paymentAmount || 15,
         currency: "USD",
         interval: "month", // All subscriptions are monthly
         name: "Premium Student Subscription",

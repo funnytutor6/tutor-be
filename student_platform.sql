@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `connectionrequests` (
   `status` enum('pending','purchased','rejected') DEFAULT 'pending',
   `requestDate` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `purchaseDate` timestamp NULL DEFAULT NULL,
-  `paymentAmount` decimal(10,2) DEFAULT '5.00',
+  `paymentAmount` decimal(10,2) DEFAULT '6.00',
   `paymentStatus` enum('unpaid','paid') DEFAULT 'unpaid',
   `contactRevealed` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),

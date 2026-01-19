@@ -486,7 +486,7 @@ const setupDatabase = async () => {
         status ENUM('pending', 'purchased', 'rejected') DEFAULT 'pending',
         requestDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         purchaseDate TIMESTAMP NULL,
-        paymentAmount DECIMAL(10,2) DEFAULT 5.00,
+        paymentAmount DECIMAL(10,2) DEFAULT 6.00,
         paymentStatus ENUM('unpaid', 'paid') DEFAULT 'unpaid',
         contactRevealed BOOLEAN DEFAULT FALSE,
         stripeSessionId VARCHAR(255) NULL,

@@ -174,7 +174,7 @@ const createTeacherPurchaseSession = async (sessionData) => {
               ? `Access to student contact details for: ${postDetails.headline}`
               : "Access to student contact details",
           },
-          unit_amount: 500, // $5.00 in cents
+          unit_amount: 600, // $6.00 in cents
         },
         quantity: 1,
       },
@@ -297,7 +297,7 @@ const getOrCreateStudentPremiumPrice = async () => {
 
     const price = await stripe.prices.create({
       product: product.id,
-      unit_amount: 2900, // $29.00 in cents
+      unit_amount: 1500, // $15.00 in cents
       currency: "usd",
       recurring: {
         interval: "month",
