@@ -31,14 +31,15 @@ exports.getSubscriptionStatus = async (req, res) => {
  */
 exports.cancelSubscription = async (req, res) => {
   try {
-    const { teacherEmail, cancelAtPeriodEnd = false } = req.body;
+    const { cancelAtPeriodEnd = false } = req.body;
+    const user = req?.user;
 
-    if (!teacherEmail) {
+    if (!user?.email) {
       return errorResponse(res, "Teacher email is required", 400);
     }
 
     const canceledSubscription = await subscriptionService.cancelSubscription(
-      teacherEmail,
+      user.email,
       cancelAtPeriodEnd
     );
 
@@ -63,7 +64,8 @@ exports.cancelSubscription = async (req, res) => {
  */
 exports.reactivateSubscription = async (req, res) => {
   try {
-    const { teacherEmail } = req.body;
+    const user = req?.user;
+    const teacherEmail = user?.email;
 
     if (!teacherEmail) {
       return errorResponse(res, "Teacher email is required", 400);

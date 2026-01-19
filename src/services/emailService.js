@@ -33,7 +33,6 @@ const createTransporter = () => {
     return null;
   }
 
-  console.log(EMAIL_CONFIG);
 
   return nodemailer.createTransport(EMAIL_CONFIG);
 };
@@ -84,14 +83,14 @@ const getAllAdminEmails = async () => {
   try {
     const { executeQuery } = require("./databaseService");
     const admins = await executeQuery("SELECT email FROM Admins");
-    
+
     // Get admin emails from database or fallback to ADMIN_EMAIL env variable
     const adminEmails =
       admins.length > 0
         ? admins.map((admin) => admin.email)
         : ADMIN_EMAIL
-        ? [ADMIN_EMAIL]
-        : [];
+          ? [ADMIN_EMAIL]
+          : [];
 
     return adminEmails;
   } catch (error) {
@@ -311,8 +310,8 @@ const sendTeacherRegistrationNotificationToAdmin = async ({
       admins.length > 0
         ? admins.map((admin) => admin.email)
         : ADMIN_EMAIL
-        ? [ADMIN_EMAIL]
-        : [];
+          ? [ADMIN_EMAIL]
+          : [];
 
     if (adminEmails.length === 0) {
       logger.warn("No admin emails found. Skipping admin notification.");
@@ -842,6 +841,330 @@ const sendTeacherConnectionPurchaseSuccess = async ({
   }
 };
 
+
+
+/**
+ * Send student subscription canceled email with admin CC
+ * @param {Object} data - Subscription data
+ * @param {String} data.studentEmail - Student email
+ * @param {String} data.studentName - Student name
+ * @param {String} data.cancellationDate - Cancellation date
+ * @param {String} data.periodEnd - Period end date
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendStudentSubscriptionCanceled = async ({
+  studentEmail,
+  studentName,
+  cancellationDate,
+  periodEnd,
+}) => {
+  try {
+    const template = await loadTemplate("student-subscription-canceled");
+
+    const adminEmails = await getAllAdminEmails();
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      studentName: studentName || "Student",
+      cancellationDate: cancellationDate || new Date().toLocaleDateString(),
+      periodEnd: periodEnd || "Unknown",
+      dashboardLink: `${FRONTEND_URL}/dashboard/student`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: studentEmail,
+      subject: `Subscription Canceled – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Student subscription canceled email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending student subscription canceled email to ${studentEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send teacher subscription canceled email with admin CC
+ * @param {Object} data - Subscription data
+ * @param {String} data.teacherEmail - Teacher email
+ * @param {String} data.teacherName - Teacher name
+ * @param {String} data.cancellationDate - Cancellation date
+ * @param {String} data.periodEnd - Period end date
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendTeacherSubscriptionCanceled = async ({
+  teacherEmail,
+  teacherName,
+  cancellationDate,
+  periodEnd,
+}) => {
+  try {
+    const template = await loadTemplate("teacher-subscription-canceled");
+
+    const adminEmails = await getAllAdminEmails();
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Teacher",
+      cancellationDate: cancellationDate || new Date().toLocaleDateString(),
+      periodEnd: periodEnd || "Unknown",
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Subscription Canceled – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Teacher subscription canceled email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending teacher subscription canceled email to ${teacherEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send student payment failed email with admin CC
+ * @param {Object} data - Payment data
+ * @param {String} data.studentEmail - Student email
+ * @param {String} data.studentName - Student name
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @param {String} data.invoiceUrl - Invoice URL (optional)
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendStudentPaymentFailed = async ({
+  studentEmail,
+  studentName,
+  paymentAmount,
+  paymentDate,
+  invoiceUrl,
+}) => {
+  try {
+    const template = await loadTemplate("student-payment-failed");
+
+    const adminEmails = await getAllAdminEmails();
+
+    const invoiceLinkSection = invoiceUrl
+      ? `<div style="text-align: center; margin-top: 15px;">
+          <a href="${invoiceUrl}" class="button" style="background-color: #7f8c8d; font-size: 14px; padding: 10px 20px;" target="_blank">
+            View Invoice
+          </a>
+        </div>`
+      : "";
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      studentName: studentName || "Student",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      invoiceLinkSection: invoiceLinkSection,
+      dashboardLink: `${FRONTEND_URL}/dashboard/student`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: studentEmail,
+      subject: `Action Required: Payment Failed – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Student payment failed email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending student payment failed email to ${studentEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send teacher payment failed email with admin CC
+ * @param {Object} data - Payment data
+ * @param {String} data.teacherEmail - Teacher email
+ * @param {String} data.teacherName - Teacher name
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @param {String} data.invoiceUrl - Invoice URL (optional)
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendTeacherPaymentFailed = async ({
+  teacherEmail,
+  teacherName,
+  paymentAmount,
+  paymentDate,
+  invoiceUrl,
+}) => {
+  try {
+    const template = await loadTemplate("teacher-payment-failed");
+
+    const adminEmails = await getAllAdminEmails();
+
+    const invoiceLinkSection = invoiceUrl
+      ? `<div style="text-align: center; margin-top: 15px;">
+          <a href="${invoiceUrl}" class="button" style="background-color: #7f8c8d; font-size: 14px; padding: 10px 20px;" target="_blank">
+            View Invoice
+          </a>
+        </div>`
+      : "";
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Teacher",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      invoiceLinkSection: invoiceLinkSection,
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Action Required: Payment Failed – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Teacher payment failed email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending teacher payment failed email to ${teacherEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send student premium one-time purchase success email with admin CC
+ * @param {Object} data - Purchase data
+ * @param {String} data.studentEmail - Student email
+ * @param {String} data.studentName - Student name
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @param {String} data.transactionId - Transaction ID
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendStudentPremiumOneTimeSuccess = async ({
+  studentEmail,
+  studentName,
+  paymentAmount,
+  paymentDate,
+  transactionId,
+}) => {
+  try {
+    const template = await loadTemplate("student-premium-one-time-success");
+
+    const adminEmails = await getAllAdminEmails();
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      studentName: studentName || "Student",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      transactionId: transactionId || "N/A",
+      dashboardLink: `${FRONTEND_URL}/dashboard/student`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: studentEmail,
+      subject: `Premium Activated Successfully – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Student one-time premium success email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending student one-time premium success email to ${studentEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send teacher premium one-time purchase success email with admin CC
+ * @param {Object} data - Purchase data
+ * @param {String} data.teacherEmail - Teacher email
+ * @param {String} data.teacherName - Teacher name
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @param {String} data.transactionId - Transaction ID
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendTeacherPremiumOneTimeSuccess = async ({
+  teacherEmail,
+  teacherName,
+  paymentAmount,
+  paymentDate,
+  transactionId,
+}) => {
+  try {
+    const template = await loadTemplate("teacher-premium-one-time-success");
+
+    const adminEmails = await getAllAdminEmails();
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Teacher",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      transactionId: transactionId || "N/A",
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Premium Activated Successfully – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Teacher one-time premium success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending teacher one-time premium success email to ${teacherEmail}:`, error);
+    return false;
+  }
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -857,6 +1180,12 @@ module.exports = {
   sendStudentSubscriptionPaymentSuccess,
   sendTeacherSubscriptionPaymentSuccess,
   sendTeacherConnectionPurchaseSuccess,
+  sendStudentSubscriptionCanceled,
+  sendTeacherSubscriptionCanceled,
+  sendStudentPaymentFailed,
+  sendTeacherPaymentFailed,
+  sendStudentPremiumOneTimeSuccess,
+  sendTeacherPremiumOneTimeSuccess,
   getAllAdminEmails,
   loadTemplate,
   processTemplate,

@@ -93,10 +93,10 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
       nextPaymentDate: nextPaymentDate,
       daysRemaining: daysRemaining,
       subscriptionPlan: {
-        amount: record.paymentAmount || 15,
+        amount: record.paymentAmount || 29,
         currency: "USD",
         interval: "month", // All subscriptions are monthly
-        name: "Premium Student Subscription",
+        name: "Premium Teacher Subscription",
       },
     };
 
@@ -234,14 +234,14 @@ const updateTeacherSubscriptionStatus = async (subscriptionData) => {
 const updateTeacherPremiumContent = async (teacherEmail, contentData) => {
   // Check if teacher has active premium (subscription or legacy payment)
   const premiumStatus = await getTeacherPremiumStatus(teacherEmail);
-  
+
   // Also check subscription status for active subscriptions
   const subscriptionService = require("./subscriptionService");
   const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
 
   // Allow update if teacher has active premium (either legacy paid or active subscription)
-  const hasActivePremium = 
-    (premiumStatus.hasPremium && premiumStatus.isPaid) || 
+  const hasActivePremium =
+    (premiumStatus.hasPremium && premiumStatus.isPaid) ||
     subscriptionStatus.isActive;
 
   if (!hasActivePremium) {

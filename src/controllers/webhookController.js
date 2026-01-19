@@ -306,6 +306,28 @@ async function handleSubscriptionDeleted(subscription) {
           : new Date(),
       });
 
+
+      // Get student name from database
+      let studentName = "Student";
+      try {
+        const studentQuery = "SELECT name FROM Students WHERE email = ? LIMIT 1";
+        const students = await executeQuery(studentQuery, [studentEmail]);
+        if (students.length > 0) {
+          studentName = students[0].name || studentName;
+        }
+      } catch (error) {
+        // Ignore error
+      }
+
+      await emailService.sendStudentSubscriptionCanceled({
+        studentEmail,
+        studentName,
+        cancellationDate: new Date().toLocaleDateString(),
+        periodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toLocaleDateString()
+          : "End of billing period",
+      });
+
       logger.info(`Subscription deleted for student: ${studentEmail}`);
     } else {
       // Teacher subscription
@@ -324,6 +346,27 @@ async function handleSubscriptionDeleted(subscription) {
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000)
           : new Date(),
+      });
+
+      // Get teacher name from database
+      let teacherName = "Teacher";
+      try {
+        const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
+        const teachers = await executeQuery(teacherQuery, [email]);
+        if (teachers.length > 0) {
+          teacherName = teachers[0].name || teacherName;
+        }
+      } catch (error) {
+        // Ignore error
+      }
+
+      await emailService.sendTeacherSubscriptionCanceled({
+        teacherEmail: email,
+        teacherName,
+        cancellationDate: new Date().toLocaleDateString(),
+        periodEnd: subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toLocaleDateString()
+          : "End of billing period",
       });
 
       logger.info(`Subscription deleted for teacher: ${email}`);
@@ -414,25 +457,25 @@ async function handleInvoicePaymentSucceeded(invoice) {
       });
       const periodStart = subscription.current_period_start
         ? new Date(subscription.current_period_start * 1000).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
         : "N/A";
       const periodEnd = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
         : "N/A";
       const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
       const nextBillingDate = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
         : "N/A";
 
       // Send payment success email
@@ -492,25 +535,25 @@ async function handleInvoicePaymentSucceeded(invoice) {
       });
       const periodStart = subscription.current_period_start
         ? new Date(subscription.current_period_start * 1000).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
         : "N/A";
       const periodEnd = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
         : "N/A";
       const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
       const nextBillingDate = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
         : "N/A";
 
       // Send payment success email
@@ -591,6 +634,26 @@ async function handleInvoicePaymentFailed(invoice) {
           : null,
       });
 
+      // Get student name from database
+      let studentName = "Student";
+      try {
+        const studentQuery = "SELECT name FROM Students WHERE email = ? LIMIT 1";
+        const students = await executeQuery(studentQuery, [studentEmail]);
+        if (students.length > 0) {
+          studentName = students[0].name || studentName;
+        }
+      } catch (error) {
+        // Ignore error
+      }
+
+      await emailService.sendStudentPaymentFailed({
+        studentEmail,
+        studentName,
+        paymentAmount: `$${(invoice.amount_due / 100).toFixed(2)}`,
+        paymentDate: new Date(invoice.created * 1000).toLocaleDateString(),
+        invoiceUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
+      });
+
       logger.warn(`Invoice payment failed for student: ${studentEmail}`);
     } else {
       // Teacher subscription
@@ -609,6 +672,26 @@ async function handleInvoicePaymentFailed(invoice) {
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000)
           : null,
+      });
+
+      // Get teacher name from database
+      let teacherName = "Teacher";
+      try {
+        const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
+        const teachers = await executeQuery(teacherQuery, [email]);
+        if (teachers.length > 0) {
+          teacherName = teachers[0].name || teacherName;
+        }
+      } catch (error) {
+        // Ignore error
+      }
+
+      await emailService.sendTeacherPaymentFailed({
+        teacherEmail: email,
+        teacherName,
+        paymentAmount: `$${(invoice.amount_due / 100).toFixed(2)}`,
+        paymentDate: new Date(invoice.created * 1000).toLocaleDateString(),
+        invoiceUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
       });
 
       logger.warn(`Invoice payment failed for teacher: ${email}`);
@@ -724,6 +807,7 @@ async function handleTeacherPurchase(session) {
   }
 }
 
+
 /**
  * Handle teacher premium subscription webhook (legacy one-time payment)
  */
@@ -751,6 +835,27 @@ async function handleTeacherPremiumSubscription(session) {
     teacherEmail,
     stripeSessionId: session.id,
     paymentAmount,
+  });
+
+  // Get teacher name from database
+  let teacherName = "Teacher";
+  try {
+    const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
+    const teachers = await executeQuery(teacherQuery, [teacherEmail]);
+    if (teachers.length > 0) {
+      teacherName = teachers[0].name || teacherName;
+    }
+  } catch (error) {
+    // Ignore error
+  }
+
+  // Send one-time premium success email
+  await emailService.sendTeacherPremiumOneTimeSuccess({
+    teacherEmail,
+    teacherName,
+    paymentAmount: `$${paymentAmount.toFixed(2)}`,
+    paymentDate: new Date(session.created * 1000).toLocaleDateString(),
+    transactionId: session.id,
   });
 }
 
@@ -785,6 +890,27 @@ async function handleStudentPremiumSubscription(session) {
     descripton,
     stripeSessionId: session.id,
     paymentAmount,
+  });
+
+  // Get student name from database
+  let studentName = "Student";
+  try {
+    const studentQuery = "SELECT name FROM Students WHERE email = ? LIMIT 1";
+    const students = await executeQuery(studentQuery, [studentEmail]);
+    if (students.length > 0) {
+      studentName = students[0].name || studentName;
+    }
+  } catch (error) {
+    // Ignore error
+  }
+
+  // Send one-time premium success email
+  await emailService.sendStudentPremiumOneTimeSuccess({
+    studentEmail,
+    studentName,
+    paymentAmount: `$${paymentAmount.toFixed(2)}`,
+    paymentDate: new Date(session.created * 1000).toLocaleDateString(),
+    transactionId: session.id,
   });
 }
 

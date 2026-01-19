@@ -128,8 +128,7 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
 
   // Check if record exists
   const checkQuery = `
-    SELECT id FROM findtutor_premium_teachers WHERE mail = ?
-  `;
+    SELECT id FROM findtutor_premium_teachers WHERE mail = ?`;
   const existing = await executeQuery(checkQuery, [teacherEmail]);
 
   if (existing.length > 0) {
@@ -184,8 +183,7 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       const updateQuery = `
         UPDATE findtutor_premium_teachers 
         SET ${updateFields.join(", ")}
-        WHERE mail = ?
-      `;
+        WHERE mail = ?`;
 
       updateValues.push(teacherEmail);
 
@@ -225,12 +223,6 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       `Created subscription record in database for teacher: ${teacherEmail}`
     );
   }
-
-  // update teacher status to has premium
-  const updateTeacherStatusQuery = `
-    UPDATE Teachers SET status = 'has_premium' WHERE email = ?
-  `;
-  await executeQuery(updateTeacherStatusQuery, [teacherEmail]);
 };
 
 /**
@@ -378,7 +370,7 @@ const getInvoiceHistory = async (teacherEmail) => {
  * @param {String} studentName - Student name
  * @returns {Promise<String>} - Stripe customer ID
  */
-const createOrRetrieveStudentCustomer = async (studentEmail, studentName) => {
+const createOrRetrieveStudentCustomer = async (studentEmail, studentName, descripton, subject, topix) => {
   // Check if customer already exists in database
   const checkQuery = `
     SELECT stripeCustomerId 
