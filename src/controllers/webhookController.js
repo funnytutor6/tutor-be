@@ -3,6 +3,8 @@ const purchaseService = require("../services/purchaseService");
 const premiumService = require("../services/premiumService");
 const subscriptionService = require("../services/subscriptionService");
 const stripeService = require("../services/stripeService");
+const emailService = require("../services/emailService");
+const { executeQuery } = require("../services/databaseService");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 const logger = require("../utils/logger");
 
@@ -388,6 +390,64 @@ async function handleInvoicePaymentSucceeded(invoice) {
       });
 
       logger.info(`Invoice payment succeeded for student: ${studentEmail}`);
+
+      // Get student name from database
+      let studentName = "Student";
+      try {
+        const studentQuery = "SELECT name FROM Students WHERE email = ? LIMIT 1";
+        const students = await executeQuery(studentQuery, [studentEmail]);
+        if (students.length > 0) {
+          studentName = students[0].name || studentName;
+        }
+      } catch (error) {
+        logger.warn(`Could not fetch student name for ${studentEmail}:`, error);
+      }
+
+      // Format payment details
+      const paymentAmount = `$${(invoice.amount_paid / 100).toFixed(2)}`;
+      const paymentDate = new Date(invoice.created * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const periodStart = subscription.current_period_start
+        ? new Date(subscription.current_period_start * 1000).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A";
+      const periodEnd = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A";
+      const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
+      const nextBillingDate = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A";
+
+      // Send payment success email
+      await emailService.sendStudentSubscriptionPaymentSuccess({
+        studentEmail,
+        studentName,
+        invoiceNumber: invoice.number || invoice.id,
+        paymentAmount,
+        paymentDate,
+        subscriptionPeriod,
+        nextBillingDate,
+        invoiceUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
+      }).catch((error) => {
+        logger.error("Error sending student subscription payment success email:", error);
+      });
     } else {
       // Teacher subscription
       await subscriptionService.updateSubscriptionInDatabase({
@@ -408,6 +468,64 @@ async function handleInvoicePaymentSucceeded(invoice) {
       });
 
       logger.info(`Invoice payment succeeded for teacher: ${email}`);
+
+      // Get teacher name from database
+      let teacherName = "Teacher";
+      try {
+        const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
+        const teachers = await executeQuery(teacherQuery, [email]);
+        if (teachers.length > 0) {
+          teacherName = teachers[0].name || teacherName;
+        }
+      } catch (error) {
+        logger.warn(`Could not fetch teacher name for ${email}:`, error);
+      }
+
+      // Format payment details
+      const paymentAmount = `$${(invoice.amount_paid / 100).toFixed(2)}`;
+      const paymentDate = new Date(invoice.created * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const periodStart = subscription.current_period_start
+        ? new Date(subscription.current_period_start * 1000).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A";
+      const periodEnd = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A";
+      const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
+      const nextBillingDate = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A";
+
+      // Send payment success email
+      await emailService.sendTeacherSubscriptionPaymentSuccess({
+        teacherEmail: email,
+        teacherName,
+        invoiceNumber: invoice.number || invoice.id,
+        paymentAmount,
+        paymentDate,
+        subscriptionPeriod,
+        nextBillingDate,
+        invoiceUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
+      }).catch((error) => {
+        logger.error("Error sending teacher subscription payment success email:", error);
+      });
     }
   } catch (error) {
     logger.error("Error handling invoice payment succeeded:", error);
@@ -535,7 +653,7 @@ async function handleTeacherPurchase(session) {
     return;
   }
 
-  const paymentAmount = session.amount_total / 100; // Convert from pence to pounds
+  const paymentAmount = session.amount_total / 100; // Convert from cents to dollars
 
   await purchaseService.createOrUpdateTeacherPurchase({
     studentPostId,
@@ -544,6 +662,66 @@ async function handleTeacherPurchase(session) {
     stripeSessionId: session.id,
     paymentAmount,
   });
+
+  // Get teacher and student details for email
+  let teacherName = "Teacher";
+  let teacherEmail = "";
+  let studentName = "Student";
+  let postSubject = "";
+  let postHeadline = "";
+
+  try {
+    // Get teacher details
+    const teacherQuery = "SELECT name, email FROM Teachers WHERE id = ? LIMIT 1";
+    const teachers = await executeQuery(teacherQuery, [teacherId]);
+    if (teachers.length > 0) {
+      teacherName = teachers[0].name || teacherName;
+      teacherEmail = teachers[0].email || "";
+    }
+
+    // Get student details
+    const studentQuery = "SELECT name FROM Students WHERE id = ? LIMIT 1";
+    const students = await executeQuery(studentQuery, [studentId]);
+    if (students.length > 0) {
+      studentName = students[0].name || studentName;
+    }
+
+    // Get post details
+    const postQuery = "SELECT subject, headline FROM StudentPosts WHERE id = ? LIMIT 1";
+    const posts = await executeQuery(postQuery, [studentPostId]);
+    if (posts.length > 0) {
+      postSubject = posts[0].subject || "";
+      postHeadline = posts[0].headline || "";
+    }
+  } catch (error) {
+    logger.warn("Could not fetch user/post details for email:", error);
+  }
+
+  // Format payment details
+  const formattedPaymentAmount = `$${paymentAmount.toFixed(2)}`;
+  const paymentDate = new Date(session.created * 1000).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  // Send payment success email
+  if (teacherEmail) {
+    await emailService.sendTeacherConnectionPurchaseSuccess({
+      teacherEmail,
+      teacherName,
+      studentName,
+      postSubject,
+      postHeadline,
+      transactionId: session.id,
+      paymentAmount: formattedPaymentAmount,
+      paymentDate,
+    }).catch((error) => {
+      logger.error("Error sending teacher connection purchase success email:", error);
+    });
+  }
 }
 
 /**

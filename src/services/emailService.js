@@ -630,6 +630,218 @@ const sendConnectionRequestNotification = async ({
   }
 };
 
+/**
+ * Send student subscription payment success email with admin CC
+ * @param {Object} data - Payment data
+ * @param {String} data.studentEmail - Student email
+ * @param {String} data.studentName - Student name
+ * @param {String} data.invoiceNumber - Invoice number
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @param {String} data.subscriptionPeriod - Subscription period
+ * @param {String} data.nextBillingDate - Next billing date
+ * @param {String} data.invoiceUrl - Invoice URL (optional)
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendStudentSubscriptionPaymentSuccess = async ({
+  studentEmail,
+  studentName,
+  invoiceNumber,
+  paymentAmount,
+  paymentDate,
+  subscriptionPeriod,
+  nextBillingDate,
+  invoiceUrl,
+}) => {
+  try {
+    const template = await loadTemplate("student-subscription-payment-success");
+
+    // Get all admin emails for CC
+    const adminEmails = await getAllAdminEmails();
+
+    const invoiceLinkSection = invoiceUrl
+      ? `<div style="text-align: center; margin-top: 15px;">
+          <a href="${invoiceUrl}" class="invoice-link" target="_blank">
+            📄 View Invoice
+          </a>
+        </div>`
+      : "";
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      studentName: studentName || "Student",
+      invoiceNumber: invoiceNumber || "N/A",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      subscriptionPeriod: subscriptionPeriod || "Monthly",
+      nextBillingDate: nextBillingDate || "N/A",
+      invoiceLinkSection: invoiceLinkSection,
+      dashboardLink: `${FRONTEND_URL}/dashboard/student`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    // Send email to student with admin CC
+    await sendEmail({
+      to: studentEmail,
+      subject: `Payment Successful – Premium Package Activated – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Student subscription payment success email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending student subscription payment success email to ${studentEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send teacher subscription payment success email with admin CC
+ * @param {Object} data - Payment data
+ * @param {String} data.teacherEmail - Teacher email
+ * @param {String} data.teacherName - Teacher name
+ * @param {String} data.invoiceNumber - Invoice number
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @param {String} data.subscriptionPeriod - Subscription period
+ * @param {String} data.nextBillingDate - Next billing date
+ * @param {String} data.invoiceUrl - Invoice URL (optional)
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendTeacherSubscriptionPaymentSuccess = async ({
+  teacherEmail,
+  teacherName,
+  invoiceNumber,
+  paymentAmount,
+  paymentDate,
+  subscriptionPeriod,
+  nextBillingDate,
+  invoiceUrl,
+}) => {
+  try {
+    const template = await loadTemplate("teacher-subscription-payment-success");
+
+    // Get all admin emails for CC
+    const adminEmails = await getAllAdminEmails();
+
+    const invoiceLinkSection = invoiceUrl
+      ? `<div style="text-align: center; margin-top: 15px;">
+          <a href="${invoiceUrl}" class="invoice-link" target="_blank">
+            📄 View Invoice
+          </a>
+        </div>`
+      : "";
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Teacher",
+      invoiceNumber: invoiceNumber || "N/A",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      subscriptionPeriod: subscriptionPeriod || "Monthly",
+      nextBillingDate: nextBillingDate || "N/A",
+      invoiceLinkSection: invoiceLinkSection,
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    // Send email to teacher with admin CC
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Payment Successful – Premium Package Activated – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Teacher subscription payment success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending teacher subscription payment success email to ${teacherEmail}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send teacher connection purchase success email with admin CC
+ * @param {Object} data - Purchase data
+ * @param {String} data.teacherEmail - Teacher email
+ * @param {String} data.teacherName - Teacher name
+ * @param {String} data.studentName - Student name
+ * @param {String} data.postSubject - Post subject (optional)
+ * @param {String} data.postHeadline - Post headline (optional)
+ * @param {String} data.transactionId - Transaction ID
+ * @param {String} data.paymentAmount - Payment amount
+ * @param {String} data.paymentDate - Payment date
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendTeacherConnectionPurchaseSuccess = async ({
+  teacherEmail,
+  teacherName,
+  studentName,
+  postSubject,
+  postHeadline,
+  transactionId,
+  paymentAmount,
+  paymentDate,
+}) => {
+  try {
+    const template = await loadTemplate("teacher-connection-purchase-success");
+
+    // Get all admin emails for CC
+    const adminEmails = await getAllAdminEmails();
+
+    const postSubjectSection = postSubject
+      ? `<p><strong>Subject:</strong> ${postSubject}</p>`
+      : "";
+    const postHeadlineSection = postHeadline
+      ? `<p><strong>Post:</strong> ${postHeadline}</p>`
+      : "";
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Teacher",
+      studentName: studentName || "Student",
+      postSubjectSection: postSubjectSection,
+      postHeadlineSection: postHeadlineSection,
+      transactionId: transactionId || "N/A",
+      paymentAmount: paymentAmount || "$0.00",
+      paymentDate: paymentDate || new Date().toLocaleDateString(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    // Send email to teacher with admin CC
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Connection Purchase Successful – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Teacher connection purchase success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+    );
+    return true;
+  } catch (error) {
+    logger.error(`Error sending teacher connection purchase success email to ${teacherEmail}:`, error);
+    return false;
+  }
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -642,6 +854,9 @@ module.exports = {
   sendPasswordResetSuccessEmail,
   sendEmailChangeNotification,
   sendConnectionRequestNotification,
+  sendStudentSubscriptionPaymentSuccess,
+  sendTeacherSubscriptionPaymentSuccess,
+  sendTeacherConnectionPurchaseSuccess,
   getAllAdminEmails,
   loadTemplate,
   processTemplate,

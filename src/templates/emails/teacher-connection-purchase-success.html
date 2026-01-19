@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connection Purchase Successful</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333333;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .email-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: #ffffff;
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .email-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .email-body {
+        padding: 40px 30px;
+      }
+      .email-body h2 {
+        color: #0d6efd;
+        font-size: 24px;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+      .email-body p {
+        margin: 15px 0;
+        color: #555555;
+      }
+      .success-badge {
+        background-color: #d1fae5;
+        color: #065f46;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .payment-details {
+        background-color: #f0f9ff;
+        border-left: 4px solid #0ea5e9;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 4px;
+      }
+      .payment-details table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .payment-details td {
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .payment-details td:first-child {
+        font-weight: 600;
+        color: #333;
+        width: 40%;
+      }
+      .payment-details td:last-child {
+        color: #666;
+      }
+      .student-info {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+      }
+      .cta-button {
+        display: inline-block;
+        padding: 14px 30px;
+        margin: 25px 0;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        text-align: center;
+      }
+      .email-footer {
+        background-color: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        color: #777777;
+        font-size: 14px;
+      }
+      @media only screen and (max-width: 600px) {
+        .email-container {
+          margin: 0;
+          border-radius: 0;
+        }
+        .email-header,
+        .email-body,
+        .email-footer {
+          padding: 30px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <!-- Header -->
+      <div class="email-header">
+        <h1>✅ Payment Successful!</h1>
+        <p style="margin: 10px 0 0 0; font-size: 18px;">Connection Access Granted</p>
+      </div>
+
+      <!-- Body -->
+      <div class="email-body">
+        <h2>Hi {{teacherName}},</h2>
+
+        <div class="success-badge">
+          🎉 Your payment was successful! You now have access to the student's contact information.
+        </div>
+
+        <p>
+          Thank you for your purchase on <strong>{{platformName}}</strong>! You can now connect with the student and start your tutoring journey.
+        </p>
+
+        <div class="student-info">
+          <h3 style="margin-top: 0; color: #333;">Student Information</h3>
+          <p><strong>Student Name:</strong> {{studentName}}</p>
+          {{postSubjectSection}}
+          {{postHeadlineSection}}
+        </div>
+
+        <div class="payment-details">
+          <h3 style="margin-top: 0; color: #0ea5e9;">Payment Details</h3>
+          <table>
+            <tr>
+              <td>Transaction ID:</td>
+              <td>{{transactionId}}</td>
+            </tr>
+            <tr>
+              <td>Amount Paid:</td>
+              <td>{{paymentAmount}}</td>
+            </tr>
+            <tr>
+              <td>Payment Date:</td>
+              <td>{{paymentDate}}</td>
+            </tr>
+            <tr>
+              <td>Payment Status:</td>
+              <td>✅ Paid</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align: center">
+          <a href="{{dashboardLink}}" class="cta-button">
+            👨‍🏫 Go to Dashboard
+          </a>
+        </div>
+
+        <p>
+          You can now view the student's contact information in your dashboard and reach out to them directly. Good luck with your tutoring!
+        </p>
+
+        <p>
+          If you have any questions or need assistance, please don't hesitate to contact our support team at <a href="mailto:{{supportEmail}}" style="color: #667eea;">{{supportEmail}}</a>.
+        </p>
+
+        <p style="margin-top: 30px">
+          Best regards,<br />
+          <strong>The {{platformName}} Team</strong>
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <p style="margin-bottom: 15px">
+          <strong>{{platformName}}</strong>
+        </p>
+        <p>© {{currentYear}} {{platformName}}. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>
+
