@@ -132,7 +132,7 @@ const createContactPurchaseSession = async (sessionData) => {
             description:
               "Access to student contact details for tutoring connection",
           },
-          unit_amount: 700, // $7.00 in cents
+          unit_amount: 500, // $5.00 in cents
         },
         quantity: 1,
       },
@@ -220,11 +220,10 @@ const createTeacherPremiumSession = async (sessionData) => {
       },
     ],
     mode: "subscription",
-    success_url: `${
-      constants.FRONTEND_URL
-    }/premium-success?session_id={CHECKOUT_SESSION_ID}&teacher_email=${encodeURIComponent(
-      teacherEmail
-    )}`,
+    success_url: `${constants.FRONTEND_URL
+      }/premium-success?session_id={CHECKOUT_SESSION_ID}&teacher_email=${encodeURIComponent(
+        teacherEmail
+      )}`,
     cancel_url: `${constants.FRONTEND_URL}/dashboard/teacher?tab=premium&cancelled=true`,
     metadata: {
       type: "premium_subscription",
@@ -352,11 +351,10 @@ const createStudentPremiumSession = async (sessionData) => {
       },
     ],
     mode: "subscription",
-    success_url: `${
-      constants.FRONTEND_URL
-    }/student-premium-success?session_id={CHECKOUT_SESSION_ID}&student_email=${encodeURIComponent(
-      studentData.email
-    )}`,
+    success_url: `${constants.FRONTEND_URL
+      }/student-premium-success?session_id={CHECKOUT_SESSION_ID}&student_email=${encodeURIComponent(
+        studentData.email
+      )}`,
     cancel_url: `${constants.FRONTEND_URL}/dashboard/student?tab=subscriptions&cancelled=true`,
     metadata: {
       type: "student_premium_subscription",
