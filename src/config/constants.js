@@ -7,6 +7,7 @@ module.exports = {
   CORS_ORIGINS: [
     "http://88.222.215.134:8081",
     "http://localhost:5173",
+    "http://localhost:5174",
     "https://tutor-fe-nine.vercel.app",
     "https://www.funnystudylearning.com",
     process.env.FRONTEND_URL,
