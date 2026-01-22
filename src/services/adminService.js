@@ -478,4 +478,116 @@ module.exports = {
   getAllTeacherSubscriptionsForAdmin,
   // Premium students
   getAllPremiumStudentsForAdmin,
+  // Reports
+  getReportsData: async () => {
+    // 1. Signups (Daily - Last 30 Days)
+    const signupsDailyQuery = `
+      SELECT DATE(created) as date, 'teacher' as type, COUNT(*) as count 
+      FROM Teachers 
+      WHERE created >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+      GROUP BY DATE(created)
+      UNION ALL
+      SELECT DATE(created) as date, 'student' as type, COUNT(*) as count 
+      FROM Students 
+      WHERE created >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+      GROUP BY DATE(created)
+      ORDER BY date
+    `;
+    const signupsDaily = await executeQuery(signupsDailyQuery);
+
+    // 1b. Signups (Monthly - Last 12 Months)
+    const signupsMonthlyQuery = `
+      SELECT DATE_FORMAT(created, '%Y-%m-01') as date, 'teacher' as type, COUNT(*) as count 
+      FROM Teachers 
+      WHERE created >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      GROUP BY DATE_FORMAT(created, '%Y-%m-01')
+      UNION ALL
+      SELECT DATE_FORMAT(created, '%Y-%m-01') as date, 'student' as type, COUNT(*) as count 
+      FROM Students 
+      WHERE created >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      GROUP BY DATE_FORMAT(created, '%Y-%m-01')
+      ORDER BY date
+    `;
+    const signupsMonthly = await executeQuery(signupsMonthlyQuery);
+
+    // 2. Active subscriptions count & MRR
+    const teacherSubscriptionsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN subscriptionStatus = 'active' OR subscriptionStatus = 'trialing' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN subscriptionStatus = 'active' OR subscriptionStatus = 'trialing' THEN paymentAmount ELSE 0 END) as mrr,
+        SUM(CASE WHEN subscriptionStatus = 'canceled' THEN 1 ELSE 0 END) as canceled_count,
+        SUM(CASE WHEN subscriptionStatus IN ('past_due', 'unpaid', 'incomplete_expired') THEN 1 ELSE 0 END) as failed_count
+      FROM findtutor_premium_teachers
+    `;
+    const [teacherStats] = await executeQuery(teacherSubscriptionsQuery);
+
+    const studentSubscriptionsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN subscriptionStatus = 'active' OR subscriptionStatus = 'trialing' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN subscriptionStatus = 'active' OR subscriptionStatus = 'trialing' THEN paymentAmount ELSE 0 END) as mrr,
+        SUM(CASE WHEN subscriptionStatus = 'canceled' THEN 1 ELSE 0 END) as canceled_count,
+        SUM(CASE WHEN subscriptionStatus IN ('past_due', 'unpaid', 'incomplete_expired') THEN 1 ELSE 0 END) as failed_count
+      FROM findtitor_premium_student
+    `;
+    const [studentStats] = await executeQuery(studentSubscriptionsQuery);
+
+    // 4. Total posts created (Teacher/Student)
+    const postsQuery = `
+      SELECT 'teacher' as type, COUNT(*) as count FROM TeacherPosts
+      UNION ALL
+      SELECT 'student' as type, COUNT(*) as count FROM StudentPosts
+    `;
+    const posts = await executeQuery(postsQuery);
+
+    // 5. Most active subjects (Student Requests)
+    const subjectsQuery = `
+      SELECT subject, COUNT(*) as count 
+      FROM StudentPosts 
+      GROUP BY subject 
+      ORDER BY count DESC 
+      LIMIT 10
+    `;
+    const subjects = await executeQuery(subjectsQuery);
+
+    // 6. Most active locations (Teachers)
+    const locationsQuery = `
+      SELECT cityOrTown as location, COUNT(*) as count 
+      FROM Teachers 
+      WHERE cityOrTown IS NOT NULL AND cityOrTown != ''
+      GROUP BY cityOrTown 
+      ORDER BY count DESC 
+      LIMIT 10
+    `;
+    const locations = await executeQuery(locationsQuery);
+
+    // 7. Pending approvals metrics
+    const pendingQuery = `
+      SELECT COUNT(*) as count FROM Teachers WHERE status = 'pending'
+    `;
+    const [pending] = await executeQuery(pendingQuery);
+
+    return {
+      signups: {
+        daily: signupsDaily,
+        monthly: signupsMonthly
+      },
+      subscriptionStats: {
+        total: Number(teacherStats?.total || 0) + Number(studentStats?.total || 0),
+        active: Number(teacherStats?.active_count || 0) + Number(studentStats?.active_count || 0),
+        mrr: Number(teacherStats?.mrr || 0) + Number(studentStats?.mrr || 0),
+        cancellations: Number(teacherStats?.canceled_count || 0) + Number(studentStats?.canceled_count || 0),
+        failedPayments: Number(teacherStats?.failed_count || 0) + Number(studentStats?.failed_count || 0)
+      },
+      posts: {
+        teacher: Number(posts.find(p => p.type === 'teacher')?.count || 0),
+        student: Number(posts.find(p => p.type === 'student')?.count || 0)
+      },
+      topSubjects: subjects,
+      topLocations: locations,
+      pendingApprovals: pending?.count || 0
+    };
+  }
 };
+

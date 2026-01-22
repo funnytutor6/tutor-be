@@ -43,6 +43,10 @@ router.get("/student-posts/:id", adminController.getStudentPostWithDetails);
 // Admin: get dashboard metrics
 router.get("/dashboard/metrics", adminController.getDashboardMetrics);
 
+// Admin: get reports data
+router.get("/reports", adminController.getReportsData);
+
+
 // Admin: get admin profile
 router.get("/profile", adminController.getAdminProfile);
 

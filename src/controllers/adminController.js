@@ -359,3 +359,18 @@ exports.getAllPremiumStudentsForAdmin = async (req, res) => {
     return errorResponse(res, "Failed to fetch premium students", 500);
   }
 };
+
+/**
+ * Get reports data
+ * GET /api/admin/reports
+ */
+exports.getReportsData = async (req, res) => {
+  try {
+    const reports = await adminService.getReportsData();
+    return successResponse(res, reports);
+  } catch (error) {
+    logger.error("Error fetching reports data:", error);
+    return errorResponse(res, "Failed to fetch reports data", 500);
+  }
+};
+
