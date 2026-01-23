@@ -38,17 +38,17 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
         isActive = true;
       }
     } else if (record.ispaid && !record.stripeSubscriptionId) {
-      // Legacy one-time payment - check if within 1 year
+      // Legacy one-time payment - check if within 30 days
       if (record.paymentDate) {
         const paymentDate = new Date(record.paymentDate);
-        const oneYearLater = new Date(
-          paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
+        const thirtyDaysLater = new Date(
+          paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000
         );
-        isActive = oneYearLater > now;
+        isActive = thirtyDaysLater > now;
         if (isActive) {
-          nextPaymentDate = oneYearLater;
+          nextPaymentDate = thirtyDaysLater;
           daysRemaining = Math.ceil(
-            (oneYearLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            (thirtyDaysLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
           );
         }
       } else {
@@ -340,14 +340,14 @@ const getStudentPremiumStatus = async (studentEmail) => {
       // Legacy one-time payment - check if within 1 year
       if (record.paymentDate) {
         const paymentDate = new Date(record.paymentDate);
-        const oneYearLater = new Date(
-          paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
+        const thirtyDaysLater = new Date(
+          paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000
         );
-        isActive = oneYearLater > now;
+        isActive = thirtyDaysLater > now;
         if (isActive) {
-          nextPaymentDate = oneYearLater;
+          nextPaymentDate = thirtyDaysLater;
           daysRemaining = Math.ceil(
-            (oneYearLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            (thirtyDaysLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
           );
         }
       } else {

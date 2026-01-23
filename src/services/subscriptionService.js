@@ -78,13 +78,13 @@ const getSubscriptionStatus = async (teacherEmail) => {
       isActive = true;
     }
   } else if (record.ispaid && !record.stripeSubscriptionId) {
-    // Legacy one-time payment - check if within 1 year
+    // Legacy one-time payment - check if within 30 days
     if (record.paymentDate) {
       const paymentDate = new Date(record.paymentDate);
-      const oneYearLater = new Date(
-        paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
+      const thirtyDaysLater = new Date(
+        paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000
       );
-      isActive = oneYearLater > now;
+      isActive = thirtyDaysLater > now;
     } else {
       isActive = record.ispaid;
     }
@@ -440,13 +440,13 @@ const getStudentSubscriptionStatus = async (studentEmail) => {
       isActive = true;
     }
   } else if (record.ispayed && !record.stripeSubscriptionId) {
-    // Legacy one-time payment - check if within 1 year
+    // Legacy one-time payment - check if within 30 days
     if (record.paymentDate) {
       const paymentDate = new Date(record.paymentDate);
-      const oneYearLater = new Date(
-        paymentDate.getTime() + 365 * 24 * 60 * 60 * 1000
+      const thirtyDaysLater = new Date(
+        paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000
       );
-      isActive = oneYearLater > now;
+      isActive = thirtyDaysLater > now;
     } else {
       isActive = record.ispayed;
     }
