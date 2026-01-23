@@ -461,14 +461,22 @@ async function handleInvoicePaymentSucceeded(invoice) {
           month: "long",
           day: "numeric",
         })
-        : "N/A";
+        : new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
       const periodEnd = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
         })
-        : "N/A";
+        : new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
       const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
       const nextBillingDate = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
@@ -476,7 +484,11 @@ async function handleInvoicePaymentSucceeded(invoice) {
           month: "long",
           day: "numeric",
         })
-        : "N/A";
+        : new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
 
       // Send payment success email
       await emailService.sendStudentSubscriptionPaymentSuccess({
@@ -539,14 +551,22 @@ async function handleInvoicePaymentSucceeded(invoice) {
           month: "long",
           day: "numeric",
         })
-        : "N/A";
+        : new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
       const periodEnd = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
         })
-        : "N/A";
+        : new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
       const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
       const nextBillingDate = subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
@@ -554,7 +574,11 @@ async function handleInvoicePaymentSucceeded(invoice) {
           month: "long",
           day: "numeric",
         })
-        : "N/A";
+        : new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
 
       // Send payment success email
       await emailService.sendTeacherSubscriptionPaymentSuccess({
