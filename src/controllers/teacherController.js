@@ -20,7 +20,7 @@ exports.getTeacherById = async (req, res) => {
     if (error.message.includes("not found")) {
       return errorResponse(res, error.message, 404);
     }
-    return errorResponse(res, "Failed to fetch teacher", 500);
+    return errorResponse(res, "Failed to fetch Tutor", 500);
   }
 };
 
@@ -91,7 +91,7 @@ exports.getPublicTeacherById = async (req, res) => {
     if (error.message.includes("not found")) {
       return errorResponse(res, error.message, 404);
     }
-    return errorResponse(res, "Failed to fetch teacher", 500);
+    return errorResponse(res, "Failed to fetch Tutor", 500);
   }
 };
 
@@ -134,7 +134,7 @@ exports.getTeacherMetrics = async (req, res) => {
     const teacherId = req?.user?.id;
 
     if (!teacherId) {
-      return errorResponse(res, "Teacher ID is required", 400);
+      return errorResponse(res, "Tutor ID is required", 400);
     }
 
     const metrics = await teacherService.getTeacherMetrics(teacherId);

@@ -60,7 +60,7 @@ exports.getPendingTeachers = async (req, res) => {
 };
 
 /**
- * Update teacher status
+ * Update  status
  * PUT /api/admin/teachers/:id/status
  * Body: { status: 'approved' | 'rejected' | 'pending' }
  */
@@ -82,7 +82,7 @@ exports.updateTeacherStatus = async (req, res) => {
     return successResponse(
       res,
       {
-        message: "Teacher status updated successfully",
+        message: "Tutor status updated successfully",
         teacher,
       },
       200
@@ -95,7 +95,7 @@ exports.updateTeacherStatus = async (req, res) => {
     if (error.message.includes("Invalid status")) {
       return errorResponse(res, error.message, 400);
     }
-    return errorResponse(res, "Failed to update teacher status", 500);
+    return errorResponse(res, "Failed to update Tutor status", 500);
   }
 };
 
@@ -116,7 +116,7 @@ exports.getAllTeacherPostsForAdmin = async (req, res) => {
     return successResponse(res, result);
   } catch (error) {
     logger.error("Error fetching teacher posts for admin:", error);
-    return errorResponse(res, "Failed to fetch teacher posts", 500);
+    return errorResponse(res, "Failed to fetch Tutor posts", 500);
   }
 };
 
@@ -178,11 +178,11 @@ exports.getTeacherPostWithDetails = async (req, res) => {
 
     return successResponse(res, result);
   } catch (error) {
-    logger.error("Error fetching teacher post details:", error);
+    logger.error("Error fetching Tutor post details:", error);
     if (error.message.includes("not found")) {
       return errorResponse(res, error.message, 404);
     }
-    return errorResponse(res, "Failed to fetch teacher post details", 500);
+    return errorResponse(res, "Failed to fetch Tutor post details", 500);
   }
 };
 
@@ -332,7 +332,7 @@ exports.getAllTeacherSubscriptionsForAdmin = async (req, res) => {
     return successResponse(res, result);
   } catch (error) {
     logger.error("Error fetching teacher subscriptions for admin:", error);
-    return errorResponse(res, "Failed to fetch teacher subscriptions", 500);
+    return errorResponse(res, "Failed to fetch Tutor subscriptions", 500);
   }
 };
 

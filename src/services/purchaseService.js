@@ -54,7 +54,7 @@ const getTeacherPurchaseDetails = async (studentPostId, teacherId) => {
   const purchases = await executeQuery(query, [studentPostId, teacherId]);
 
   if (purchases.length === 0) {
-    throw new Error("Teacher purchase not found or not paid");
+    throw new Error("Tutor purchase not found or not paid");
   }
 
   const purchase = purchases[0];

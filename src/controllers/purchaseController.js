@@ -23,7 +23,7 @@ exports.getTeacherPurchases = async (req, res) => {
     return successResponse(res, purchases);
   } catch (error) {
     logger.error("Error fetching teacher purchases:", error);
-    return errorResponse(res, "Failed to fetch teacher purchases", 500);
+    return errorResponse(res, "Failed to fetch Tutor purchases", 500);
   }
 };
 
@@ -141,7 +141,7 @@ exports.getTeacherPurchaseDetails = async (req, res) => {
     if (error.message.includes("not found")) {
       return errorResponse(res, error.message, 404);
     }
-    return errorResponse(res, "Failed to fetch teacher purchase", 500);
+    return errorResponse(res, "Failed to fetch Tutor purchase", 500);
   }
 };
 

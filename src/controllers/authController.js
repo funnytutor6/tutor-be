@@ -37,7 +37,7 @@ exports.registerTeacher = async (req, res) => {
     return res.status(201).json({
       success: true,
       message:
-        "Teacher registered successfully. Please verify your phone number with OTP.",
+        "Tutor registered successfully. Please verify your phone number with OTP.",
       teacherId: result.teacherId,
       teacher: result.teacher,
       requiresOTPVerification: true,
@@ -47,7 +47,7 @@ exports.registerTeacher = async (req, res) => {
     if (error.message.includes("already exists")) {
       return errorResponse(res, error.message, 400);
     }
-    return errorResponse(res, "Failed to register teacher", 500);
+    return errorResponse(res, "Failed to register Tutor", 500);
   }
 };
 
@@ -71,7 +71,7 @@ exports.loginTeacher = async (req, res) => {
       teacher: result.teacher,
     });
   } catch (error) {
-    logger.error("Error during teacher login:", error);
+    logger.error("Error during Tutor login:", error);
     console.log("error", error?.message);
 
     // If phone verification is required, return user data for OTP verification
@@ -342,7 +342,7 @@ exports.resetPassword = async (req, res) => {
     }
 
     if (!["student", "teacher"].includes(userType)) {
-      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+      return errorResponse(res, "userType must be 'student' or 'Tutor'", 400);
     }
 
     if (newPassword.length < 6) {

@@ -349,7 +349,7 @@ async function handleSubscriptionDeleted(subscription) {
       });
 
       // Get teacher name from database
-      let teacherName = "Teacher";
+      let teacherName = "Tutor";
       try {
         const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
         const teachers = await executeQuery(teacherQuery, [email]);
@@ -525,7 +525,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
       logger.info(`Invoice payment succeeded for teacher: ${email}`);
 
       // Get teacher name from database
-      let teacherName = "Teacher";
+      let teacherName = "Tutor";
       try {
         const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
         const teachers = await executeQuery(teacherQuery, [email]);
@@ -699,7 +699,7 @@ async function handleInvoicePaymentFailed(invoice) {
       });
 
       // Get teacher name from database
-      let teacherName = "Teacher";
+      let teacherName = "Tutor";
       try {
         const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
         const teachers = await executeQuery(teacherQuery, [email]);
@@ -771,7 +771,7 @@ async function handleTeacherPurchase(session) {
   });
 
   // Get teacher and student details for email
-  let teacherName = "Teacher";
+  let teacherName = "Tutor";
   let teacherEmail = "";
   let studentName = "Student";
   let postSubject = "";
@@ -862,7 +862,7 @@ async function handleTeacherPremiumSubscription(session) {
   });
 
   // Get teacher name from database
-  let teacherName = "Teacher";
+  let teacherName = "Tutor";
   try {
     const teacherQuery = "SELECT name FROM Teachers WHERE email = ? LIMIT 1";
     const teachers = await executeQuery(teacherQuery, [teacherEmail]);

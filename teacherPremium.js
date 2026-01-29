@@ -39,7 +39,7 @@ router.get("/", async (req, res) => {
       items: records,
     });
   } catch (error) {
-    console.error("Error fetching teacher premium records:", error);
+    console.error("Error fetching tutor premium records:", error);
     res.status(500).json({ error: "Failed to fetch records" });
   }
 });
@@ -57,12 +57,12 @@ router.get("/:id", async (req, res) => {
 
     res.json(records[0]);
   } catch (error) {
-    console.error("Error fetching teacher premium record:", error);
+    console.error("Error fetching  premium record:", error);
     res.status(500).json({ error: "Failed to fetch record" });
   }
 });
 
-// POST create new teacher premium record
+// POST create new  premium record
 router.post("/", async (req, res) => {
   try {
     const {
@@ -115,12 +115,12 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(createdRecord[0]);
   } catch (error) {
-    console.error("Error creating teacher premium record:", error);
+    console.error("Error creating  premium record:", error);
     res.status(500).json({ error: "Failed to create record" });
   }
 });
 
-// PATCH update teacher premium record
+// PATCH update  premium record
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -162,12 +162,12 @@ router.patch("/:id", async (req, res) => {
 
     res.json(updatedRecord[0]);
   } catch (error) {
-    console.error("Error updating teacher premium record:", error);
+    console.error("Error updating  premium record:", error);
     res.status(500).json({ error: "Failed to update record" });
   }
 });
 
-// DELETE teacher premium record
+// DELETE  premium record
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -181,13 +181,13 @@ router.delete("/:id", async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting teacher premium record:", error);
+    console.error("Error deleting  premium record:", error);
     res.status(500).json({ error: "Failed to delete record" });
   }
 });
 
-// GET teacher premium status by email (special endpoint for your existing logic)
-// GET teacher premium status by email
+// GET  premium status by email (special endpoint for your existing logic)
+// GET  premium status by email
 router.get("/status/:email", async (req, res) => {
   try {
     const { email } = req.params;
@@ -209,7 +209,7 @@ router.get("/status/:email", async (req, res) => {
       premiumData: record,
     });
   } catch (error) {
-    console.error("Error checking teacher premium status:", error);
+    console.error("Error checking  premium status:", error);
     res.status(500).json({
       error: "Failed to check premium status",
       details: error.message,

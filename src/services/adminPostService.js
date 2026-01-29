@@ -207,7 +207,7 @@ const getTeacherPostWithDetails = async (postId) => {
   const results = await executeQuery(query, [postId]);
 
   if (results.length === 0) {
-    throw new Error("Teacher post not found");
+    throw new Error("Tutor post not found");
   }
 
   const post = results[0];

@@ -31,10 +31,10 @@ exports.sendConnectionRequest = async (req, res) => {
       try {
         // Fetch teacher information
         const teacher = await getTeacherById(teacherId);
-        
+
         // Fetch student information
         const student = await getStudentById(studentId);
-        
+
         // Fetch post information
         const postQuery = "SELECT headline, subject FROM TeacherPosts WHERE id = ?";
         const posts = await executeQuery(postQuery, [postId]);
@@ -86,7 +86,7 @@ exports.getConnectionRequestsForTeacher = async (req, res) => {
     // get teacher by id
     const teacher = await getTeacherById(teacherId);
     if (!teacher) {
-      return errorResponse(res, "Teacher not found", 404);
+      return errorResponse(res, "Tutor not found", 404);
     }
 
     // Check if teacher has active subscription
@@ -126,7 +126,7 @@ exports.getConnectionRequestCount = async (req, res) => {
     // get teacher by id
     const teacher = await getTeacherById(teacherId);
     if (!teacher) {
-      return errorResponse(res, "Teacher not found", 404);
+      return errorResponse(res, "Tutor not found", 404);
     }
     const count = await connectionService.getConnectionRequestCount(teacherId);
 

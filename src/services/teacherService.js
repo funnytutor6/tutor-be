@@ -12,7 +12,7 @@ const getTeacherById = async (id) => {
   const teachers = await executeQuery(query, [id]);
 
   if (teachers.length === 0) {
-    throw new Error("Teacher not found");
+    throw new Error("Tutor not found");
   }
 
   const teacher = teachers[0];
@@ -27,6 +27,7 @@ const getTeacherById = async (id) => {
     cityOrTown: teacher.cityOrTown,
     country: teacher.country,
     profilePhoto: teacher.profilePhoto,
+    about: teacher.about,
     status: teacher.status || "pending",
     created: teacher.created,
     updated: teacher.updated,
@@ -40,8 +41,37 @@ const getTeacherById = async (id) => {
  * @returns {Promise<Object>} - Updated teacher data
  */
 const updateTeacher = async (id, updateData) => {
-  const { name, email, phoneNumber, cityOrTown, country, profilePhoto } =
+  const { name, email, phoneNumber, cityOrTown, country, profilePhoto, about } =
     updateData;
+
+  // Validate 'about' field if provided
+  if (about !== undefined) {
+    const trimmedAbout = about.trim();
+
+    // Check for URLs/links
+    const urlPattern = /https?:\/\/|www\.|\.com|\.org|\.net|\.edu|\.gov|\.co\.|\.io|\.app|\.dev/i;
+    if (urlPattern.test(trimmedAbout)) {
+      throw new Error("About section cannot contain links or URLs");
+    }
+
+    // Check for email addresses
+    const emailPattern = /@|email|e-mail/i;
+    if (emailPattern.test(trimmedAbout)) {
+      throw new Error("About section cannot contain email addresses");
+    }
+
+    // Check for phone numbers (various formats)
+    const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\d{10,}|phone|mobile|call|whatsapp|telegram|contact\s*me|reach\s*me/i;
+    if (phonePattern.test(trimmedAbout)) {
+      throw new Error("About section cannot contain phone numbers or contact methods");
+    }
+
+    // Check for social media handles
+    const socialPattern = /instagram|facebook|twitter|linkedin|snapchat|tiktok|youtube|@[a-zA-Z0-9_]+/i;
+    if (socialPattern.test(trimmedAbout)) {
+      throw new Error("About section cannot contain social media information");
+    }
+  }
 
   // Get current teacher data to check if email is changing
   let currentTeacher = null;
@@ -83,6 +113,10 @@ const updateTeacher = async (id, updateData) => {
     updateFields.push("profilePhoto = ?");
     updateValues.push(profilePhoto);
   }
+  if (about !== undefined) {
+    updateFields.push("about = ?");
+    updateValues.push(about.trim());
+  }
 
   if (updateFields.length === 0) {
     throw new Error("No fields to update");
@@ -100,7 +134,7 @@ const updateTeacher = async (id, updateData) => {
   const result = await executeQuery(updateQuery, updateValues);
 
   if (result.affectedRows === 0) {
-    throw new Error("Teacher not found");
+    throw new Error("Tutor not found");
   }
 
   logger.info("Teacher profile updated successfully:", id);
@@ -162,7 +196,7 @@ const getPublicTeacherById = async (id, userId) => {
   const teachers = await executeQuery(query, [id]);
 
   if (teachers.length === 0) {
-    throw new Error("Teacher not found");
+    throw new Error("Tutor not found");
   }
   const studentQuery = "SELECT * FROM Students WHERE id = ? AND hasPremium = 1";
   const hasStudents = (await executeQuery(studentQuery, [userId])?.length) > 0;
@@ -206,7 +240,7 @@ const deleteTeacher = async (id) => {
     const [teachers] = await connection.query(teacherQuery, [id]);
 
     if (teachers.length === 0) {
-      throw new Error("Teacher not found");
+      throw new Error("Tutor not found");
     }
 
     const teacherEmail = teachers[0].email;
@@ -239,7 +273,7 @@ const deleteTeacher = async (id) => {
     const [result] = await connection.query(deleteTeacherQuery, [id]);
 
     if (result.affectedRows === 0) {
-      throw new Error("Teacher not found");
+      throw new Error("Tutor not found");
     }
 
     await connection.commit();

@@ -74,7 +74,7 @@ const registerTeacher = async (teacherData) => {
   const existing = await executeQuery(checkQuery, [email]);
 
   if (existing.length > 0) {
-    throw new Error("Teacher with this email already exists");
+    throw new Error("Tutor with this email already exists");
   }
 
   // Generate new teacher ID
@@ -86,9 +86,11 @@ const registerTeacher = async (teacherData) => {
   // Create teacher record with pending status
   const createQuery = `
     INSERT INTO Teachers 
-    (id, name, email, password, phoneNumber, cityOrTown, country, profilePhoto, status, created, updated)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+    (id, name, email, password, phoneNumber, cityOrTown, country, profilePhoto, about, status, created, updated)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
   `;
+
+  const defaultAbout = 'I am a passionate educator dedicated to helping students achieve their learning goals.';
 
   await executeQuery(createQuery, [
     teacherId,
@@ -99,6 +101,7 @@ const registerTeacher = async (teacherData) => {
     cityOrTown || null,
     country || null,
     profilePhotoUrl || null,
+    defaultAbout,
     "pending",
   ]);
 
@@ -151,7 +154,7 @@ const completeTeacherRegistration = async (teacherId) => {
   const teachers = await executeQuery(query, [teacherId]);
 
   if (teachers.length === 0) {
-    throw new Error("Teacher not found");
+    throw new Error("Tutor not found");
   }
 
   const teacher = teachers[0];
@@ -192,6 +195,7 @@ const completeTeacherRegistration = async (teacherId) => {
       cityOrTown: teacher.cityOrTown,
       country: teacher.country,
       profilePhoto: teacher.profilePhoto,
+      about: teacher.about,
       status: teacher.status || "pending",
       created: teacher.created,
       updated: teacher.updated,
@@ -270,6 +274,7 @@ const loginTeacher = async (email, password) => {
       cityOrTown: teacher.cityOrTown,
       country: teacher.country,
       profilePhoto: teacher.profilePhoto,
+      about: teacher.about,
       status: teacher.status || "pending",
       created: teacher.created,
       updated: teacher.updated,

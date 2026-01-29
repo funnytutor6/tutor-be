@@ -1,161 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>New Teacher Registration – {{platformName}}</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          "Helvetica Neue", Arial, sans-serif;
-        line-height: 1.6;
-        color: #333333;
-        margin: 0;
-        padding: 0;
-        background-color: #f4f4f4;
-      }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Tutor Registration – {{platformName}}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .email-header {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #ffffff;
+      padding: 40px 30px;
+      text-align: center;
+    }
+
+    .email-header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .email-body {
+      padding: 40px 30px;
+    }
+
+    .email-body h2 {
+      color: #f59e0b;
+      font-size: 24px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    .email-body p {
+      margin: 15px 0;
+      color: #555555;
+    }
+
+    .teacher-info {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 25px;
+      margin: 25px 0;
+    }
+
+    .info-row {
+      margin: 10px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #333;
+      display: inline-block;
+      width: 120px;
+    }
+
+    .info-value {
+      color: #555;
+    }
+
+    .cta-button {
+      display: inline-block;
+      padding: 14px 30px;
+      margin: 25px 0;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      color: #777777;
+      font-size: 14px;
+    }
+
+    @media only screen and (max-width: 600px) {
       .email-container {
-        max-width: 600px;
-        margin: 20px auto;
-        background-color: #ffffff;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      .email-header {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: #ffffff;
-        padding: 40px 30px;
-        text-align: center;
-      }
-      .email-header h1 {
         margin: 0;
-        font-size: 28px;
-        font-weight: 600;
+        border-radius: 0;
       }
-      .email-body {
-        padding: 40px 30px;
-      }
-      .email-body h2 {
-        color: #f59e0b;
-        font-size: 24px;
-        margin-top: 0;
-        margin-bottom: 20px;
-      }
-      .email-body p {
-        margin: 15px 0;
-        color: #555555;
-      }
-      .teacher-info {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 25px;
-        margin: 25px 0;
-      }
-      .info-row {
-        margin: 10px 0;
-        padding: 8px 0;
-        border-bottom: 1px solid #e9ecef;
-      }
-      .info-row:last-child {
-        border-bottom: none;
-      }
-      .info-label {
-        font-weight: 600;
-        color: #333;
-        display: inline-block;
-        width: 120px;
-      }
-      .info-value {
-        color: #555;
-      }
-      .cta-button {
-        display: inline-block;
-        padding: 14px 30px;
-        margin: 25px 0;
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: #ffffff !important;
-        text-decoration: none;
-        border-radius: 6px;
-        font-weight: 600;
-        text-align: center;
-      }
+
+      .email-header,
+      .email-body,
       .email-footer {
-        background-color: #f8f9fa;
-        padding: 30px;
-        text-align: center;
-        color: #777777;
-        font-size: 14px;
+        padding: 30px 20px;
       }
-      @media only screen and (max-width: 600px) {
-        .email-container {
-          margin: 0;
-          border-radius: 0;
-        }
-        .email-header,
-        .email-body,
-        .email-footer {
-          padding: 30px 20px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="email-container">
-      <div class="email-header">
-        <h1>📋 New Teacher Registration</h1>
-      </div>
-      <div class="email-body">
-        <h2>Hello Admin,</h2>
-        <p>
-          A new teacher has registered on <strong>{{platformName}}</strong> and
-          is awaiting approval.
-        </p>
+    }
+  </style>
+</head>
 
-        <div class="teacher-info">
-          <h3 style="margin-top: 0; color: #333">Teacher Details:</h3>
-          <div class="info-row">
-            <span class="info-label">Name:</span>
-            <span class="info-value">{{teacherName}}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Email:</span>
-            <span class="info-value">{{teacherEmail}}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Phone:</span>
-            <span class="info-value">{{teacherPhone}}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Location:</span>
-            <span class="info-value">{{teacherLocation}}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Country:</span>
-            <span class="info-value">{{teacherCountry}}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Status:</span>
-            <span class="info-value" style="color: #f59e0b; font-weight: 600"
-              >Pending Approval</span
-            >
-          </div>
-        </div>
-
-        <div style="text-align: center">
-          <a href="{{adminDashboardLink}}" class="cta-button">
-            Review Teacher Application
-          </a>
-        </div>
-
-        <p style="margin-top: 30px">
-          Best regards,<br />
-          <strong>{{platformName}} System</strong>
-        </p>
-      </div>
-      <div class="email-footer">
-        <p>© {{currentYear}} {{platformName}}. All rights reserved.</p>
-      </div>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>📋 New Tutor Registration</h1>
     </div>
-  </body>
+    <div class="email-body">
+      <h2>Hello Admin,</h2>
+      <p>
+        A new Tutor has registered on <strong>{{platformName}}</strong> and
+        is awaiting approval.
+      </p>
+
+      <div class="teacher-info">
+        <h3 style="margin-top: 0; color: #333">Tutor Details:</h3>
+        <div class="info-row">
+          <span class="info-label">Name:</span>
+          <span class="info-value">{{teacherName}}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Email:</span>
+          <span class="info-value">{{teacherEmail}}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Phone:</span>
+          <span class="info-value">{{teacherPhone}}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Location:</span>
+          <span class="info-value">{{teacherLocation}}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Country:</span>
+          <span class="info-value">{{teacherCountry}}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Status:</span>
+          <span class="info-value" style="color: #f59e0b; font-weight: 600">Pending Approval</span>
+        </div>
+      </div>
+
+      <div style="text-align: center">
+        <a href="{{adminDashboardLink}}" class="cta-button">
+          Review Tutor Application
+        </a>
+      </div>
+
+      <p style="margin-top: 30px">
+        Best regards,<br />
+        <strong>{{platformName}} System</strong>
+      </p>
+    </div>
+    <div class="email-footer">
+      <p>© {{currentYear}} {{platformName}}. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+
 </html>

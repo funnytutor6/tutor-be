@@ -254,6 +254,32 @@ const setupDatabase = async () => {
       );
     }
 
+    // Add 'about' column if it doesn't exist
+    try {
+      const [aboutColumns] = await connection.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Teachers' AND COLUMN_NAME = 'about'`,
+        [process.env.DB_NAME]
+      );
+
+      if (aboutColumns.length === 0) {
+        await connection.query(
+          `ALTER TABLE Teachers 
+           ADD COLUMN about TEXT NULL 
+           COMMENT 'Teacher bio/description - cannot contain links, emails, or contact information' 
+           AFTER profilePhoto`
+        );
+        logger.info("✓ Added 'about' column to Teachers table");
+      } else {
+        logger.info("✓ 'about' column already exists in Teachers table");
+      }
+    } catch (aboutError) {
+      logger.error(
+        "Error adding 'about' column to Teachers table:",
+        aboutError.message
+      );
+    }
+
     // Migrate existing tables to use longer VARCHAR for ID columns
     logger.info("Migrating existing tables to use longer ID columns...");
 

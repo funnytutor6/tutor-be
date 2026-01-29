@@ -11,7 +11,7 @@ const validateConnectionRequest = (data) => {
   }
 
   if (!data.teacherId || data.teacherId.trim().length === 0) {
-    errors.push("Teacher ID is required");
+    errors.push("Tutor ID is required");
   }
 
   if (!data.postId || data.postId.trim().length === 0) {
@@ -37,7 +37,7 @@ const validateTeacherPurchase = (data) => {
   }
 
   if (!data.teacherId || data.teacherId.trim().length === 0) {
-    errors.push("Teacher ID is required");
+    errors.push("Tutor ID is required");
   }
 
   if (!data.studentId || data.studentId.trim().length === 0) {

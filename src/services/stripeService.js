@@ -286,7 +286,7 @@ const getOrCreateStudentPremiumPrice = async () => {
     const product = await stripe.products.create({
       name: "Premium Student Subscription",
       description:
-        "Premium student subscription with 2 free lessons per month and teacher matching",
+        "Premium student subscription with 2 free lessons per month and Tutor matching",
       images: [
         "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400",
       ],

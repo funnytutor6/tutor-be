@@ -33,7 +33,7 @@ exports.createTeacherPremiumCheckout = async (req, res) => {
     const { teacherEmail, teacherName } = req.body;
 
     if (!teacherEmail) {
-      return errorResponse(res, "Teacher email is required", 400);
+      return errorResponse(res, "Tutor email is required", 400);
     }
 
     // Create or retrieve Stripe customer

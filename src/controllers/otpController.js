@@ -18,7 +18,7 @@ exports.sendOTP = async (req, res) => {
     }
 
     if (!["student", "teacher"].includes(userType)) {
-      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+      return errorResponse(res, "userType must be 'student' or 'Tutor'", 400);
     }
 
     const result = await otpService.sendOTP(userId, userType, phoneNumber);
@@ -47,7 +47,7 @@ exports.verifyOTP = async (req, res) => {
     }
 
     if (!["student", "teacher"].includes(userType)) {
-      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+      return errorResponse(res, "userType must be 'Student' or 'Tutor'", 400);
     }
 
     await otpService.verifyOTP(userId, userType, phoneNumber, otpCode);
@@ -75,7 +75,7 @@ exports.getOTPStatus = async (req, res) => {
     }
 
     if (!["student", "teacher"].includes(userType)) {
-      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+      return errorResponse(res, "userType must be 'Student' or 'Tutor'", 400);
     }
 
     const status = await otpService.getOTPStatus(userId, userType, phoneNumber);
@@ -103,7 +103,7 @@ exports.checkPhoneVerified = async (req, res) => {
     }
 
     if (!["student", "teacher"].includes(userType)) {
-      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+      return errorResponse(res, "userType must be 'Student' or 'Tutor'", 400);
     }
 
     const isVerified = await otpService.isPhoneVerified(

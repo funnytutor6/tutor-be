@@ -294,7 +294,7 @@ const reactivateSubscription = async (teacherEmail) => {
   const records = await executeQuery(query, [teacherEmail]);
 
   if (records.length === 0 || !records[0].stripeSubscriptionId) {
-    throw new Error("No subscription found for this teacher");
+    throw new Error("No subscription found for this Tutor");
   }
 
   const subscriptionId = records[0].stripeSubscriptionId;

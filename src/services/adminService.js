@@ -37,6 +37,7 @@ const getAllTeachers = async ({ page, pageSize, search }) => {
       t.cityOrTown,
       t.country,
       t.profilePhoto,
+      t.about,
       t.status,
       t.created,
       t.updated
@@ -97,6 +98,7 @@ const getPendingTeachers = async ({ page, pageSize, search }) => {
       t.cityOrTown,
       t.country,
       t.profilePhoto,
+      t.about,
       t.status,
       t.created,
       t.updated
@@ -146,10 +148,10 @@ const updateTeacherStatus = async (
   const result = await executeQuery(updateQuery, [status, teacherId]);
 
   if (result.affectedRows === 0) {
-    throw new Error("Teacher not found");
+    throw new Error("Tutor not found");
   }
 
-  logger.info(`Teacher status updated to ${status}:`, teacherId);
+  logger.info(`Tutor status updated to ${status}:`, teacherId);
 
   const query = "SELECT * FROM Teachers WHERE id = ?";
   const teachers = await executeQuery(query, [teacherId]);
@@ -165,7 +167,7 @@ const updateTeacherStatus = async (
         name: teacher.name,
       })
       .catch((error) => {
-        logger.error("Failed to send teacher approval email:", error);
+        logger.error("Failed to send Tutor approval email:", error);
         // Continue even if email fails
       });
   }

@@ -13,7 +13,7 @@ exports.getSubscriptionStatus = async (req, res) => {
     const user = req?.user;
 
     if (!user?.email) {
-      return errorResponse(res, "Teacher email is required", 400);
+      return errorResponse(res, "Tutor email is required", 400);
     }
 
     const status = await subscriptionService.getSubscriptionStatus(user.email);
@@ -35,7 +35,7 @@ exports.cancelSubscription = async (req, res) => {
     const user = req?.user;
 
     if (!user?.email) {
-      return errorResponse(res, "Teacher email is required", 400);
+      return errorResponse(res, "Tutor email is required", 400);
     }
 
     const canceledSubscription = await subscriptionService.cancelSubscription(
@@ -68,7 +68,7 @@ exports.reactivateSubscription = async (req, res) => {
     const teacherEmail = user?.email;
 
     if (!teacherEmail) {
-      return errorResponse(res, "Teacher email is required", 400);
+      return errorResponse(res, "Tutor email is required", 400);
     }
 
     const reactivatedSubscription =
@@ -96,7 +96,7 @@ exports.getInvoiceHistory = async (req, res) => {
     const { teacherEmail } = req.params;
 
     if (!teacherEmail) {
-      return errorResponse(res, "Teacher email is required", 400);
+      return errorResponse(res, "Tutor email is required", 400);
     }
 
     const invoices = await subscriptionService.getInvoiceHistory(teacherEmail);
@@ -217,7 +217,7 @@ exports.getStudentSubscriptionStatus = async (req, res) => {
 };
 
 /**
- * Create customer portal session for teacher
+ * Create customer portal session for Tutor
  * POST /api/subscriptions/customer-portal
  */
 exports.createCustomerPortalSession = async (req, res) => {
@@ -238,7 +238,7 @@ exports.createCustomerPortalSession = async (req, res) => {
     ) {
       return errorResponse(
         res,
-        "No active subscription found for this teacher",
+        "No active subscription found for this Tutor",
         404
       );
     }

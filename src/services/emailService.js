@@ -322,7 +322,7 @@ const sendTeacherRegistrationNotificationToAdmin = async ({
     const emailPromises = adminEmails.map((adminEmail) =>
       sendEmail({
         to: adminEmail,
-        subject: `New Teacher Registration – ${PLATFORM_NAME}`,
+        subject: `New Tutor Registration – ${PLATFORM_NAME}`,
         html,
       })
     );
@@ -521,7 +521,7 @@ const sendEmailChangeNotification = async ({ oldEmail, newEmail, name, userType 
     const templateData = {
       platformName: PLATFORM_NAME,
       userName: name,
-      userType: userType === "teacher" ? "Teacher" : "Student",
+      userType: userType === "teacher" ? "Tutor" : "Student",
       oldEmail: oldEmail,
       newEmail: newEmail,
       changeDate: changeDate,
@@ -724,7 +724,7 @@ const sendTeacherSubscriptionPaymentSuccess = async ({
   invoiceUrl,
 }) => {
   try {
-    const template = await loadTemplate("teacher-subscription-payment-success");
+    const template = await loadTemplate("Tutor-subscription-payment-success");
 
     // Get all admin emails for CC
     const adminEmails = await getAllAdminEmails();
@@ -739,7 +739,7 @@ const sendTeacherSubscriptionPaymentSuccess = async ({
 
     const templateData = {
       platformName: PLATFORM_NAME,
-      teacherName: teacherName || "Teacher",
+      teacherName: teacherName || "Tutor",
       invoiceNumber: invoiceNumber || "N/A",
       paymentAmount: paymentAmount || "$0.00",
       paymentDate: paymentDate || new Date().toLocaleDateString(),
@@ -809,7 +809,7 @@ const sendTeacherConnectionPurchaseSuccess = async ({
 
     const templateData = {
       platformName: PLATFORM_NAME,
-      teacherName: teacherName || "Teacher",
+      teacherName: teacherName || "Tutor",
       studentName: studentName || "Student",
       postSubjectSection: postSubjectSection,
       postHeadlineSection: postHeadlineSection,
@@ -914,7 +914,7 @@ const sendTeacherSubscriptionCanceled = async ({
 
     const templateData = {
       platformName: PLATFORM_NAME,
-      teacherName: teacherName || "Teacher",
+      teacherName: teacherName || "Tutor",
       cancellationDate: cancellationDate || new Date().toLocaleDateString(),
       periodEnd: periodEnd || "Unknown",
       dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
@@ -1033,7 +1033,7 @@ const sendTeacherPaymentFailed = async ({
 
     const templateData = {
       platformName: PLATFORM_NAME,
-      teacherName: teacherName || "Teacher",
+      teacherName: teacherName || "Tutor",
       paymentAmount: paymentAmount || "$0.00",
       paymentDate: paymentDate || new Date().toLocaleDateString(),
       invoiceLinkSection: invoiceLinkSection,
@@ -1137,7 +1137,7 @@ const sendTeacherPremiumOneTimeSuccess = async ({
 
     const templateData = {
       platformName: PLATFORM_NAME,
-      teacherName: teacherName || "Teacher",
+      teacherName: teacherName || "Tutor",
       paymentAmount: paymentAmount || "$0.00",
       paymentDate: paymentDate || new Date().toLocaleDateString(),
       transactionId: transactionId || "N/A",

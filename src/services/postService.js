@@ -449,10 +449,9 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
   const studentData = await executeQuery(studentQuery, [teacherEmail]);
   const hasStudents = studentData?.length > 0 && studentData[0].ispaid === 1;
   const query = `
-    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country ${
-      hasStudents
-        ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country, s.profilePhoto"
-        : ""
+    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country ${hasStudents
+      ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country, s.profilePhoto"
+      : ""
     }
     FROM StudentPosts sp
     JOIN Students s ON sp.studentId = s.id
@@ -474,10 +473,9 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
   const hasStudents = studentResult?.length > 0;
 
   const query = `
-    SELECT tp.*, t.name as teacherName, t.cityOrTown, t.country, t.email ${
-      hasStudents
-        ? ", t.name, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
-        : ""
+    SELECT tp.*, t.name as teacherName, t.cityOrTown, t.country, t.email, t.about ${hasStudents
+      ? ", t.name, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
+      : ""
     } FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
     WHERE tp.id = ?

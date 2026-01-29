@@ -125,13 +125,13 @@ exports.getAllTeacherPosts = async (req, res) => {
     const user = req.user;
     const teacher = await getTeacherById(user.id);
     if (!teacher) {
-      return errorResponse(res, "Teacher not found", 404);
+      return errorResponse(res, "Tutor not found", 404);
     }
     const posts = await postService.getAllTeacherPosts(teacher.id);
     return successResponse(res, posts);
   } catch (error) {
     logger.error("Error fetching teacher posts:", error);
-    return errorResponse(res, "Failed to fetch teacher posts", 500);
+    return errorResponse(res, "Failed to fetch Tutor posts", 500);
   }
 };
 
@@ -151,7 +151,7 @@ exports.getTeacherPostsByTeacherId = async (req, res) => {
     return successResponse(res, { posts });
   } catch (error) {
     logger.error("Error fetching teacher posts:", error);
-    return errorResponse(res, "Failed to fetch teacher posts", 500);
+    return errorResponse(res, "Failed to fetch Tutor posts", 500);
   }
 };
 
@@ -296,7 +296,7 @@ exports.getAllPublicTeacherPosts = async (req, res) => {
     return successResponse(res, posts);
   } catch (error) {
     logger.error("Error fetching teacher posts:", error);
-    return errorResponse(res, "Failed to fetch teacher posts", 500);
+    return errorResponse(res, "Failed to fetch Tutor posts", 500);
   }
 };
 
@@ -331,6 +331,6 @@ exports.getAllPublicTeacherPostsById = async (req, res) => {
     return successResponse(res, posts);
   } catch (error) {
     logger.error("Error fetching teacher posts:", error);
-    return errorResponse(res, "Failed to fetch teacher posts", 500);
+    return errorResponse(res, "Failed to fetch Tutor posts", 500);
   }
 };
