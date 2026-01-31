@@ -150,6 +150,32 @@ async function resolveSubscriptionMetadata(stripe, subscription) {
 }
 
 /**
+ * Get the checkout session that created this subscription (for session id and amount)
+ * @param {Object} stripe - Stripe instance
+ * @param {String} subscriptionId - Stripe subscription ID
+ * @returns {Promise<{sessionId: string|null, paymentAmount: number|null}>}
+ */
+async function getCheckoutSessionForSubscription(stripe, subscriptionId) {
+  try {
+    const sessions = await stripe.checkout.sessions.list({
+      subscription: subscriptionId,
+      limit: 1,
+    });
+    if (sessions.data.length > 0) {
+      const session = sessions.data[0];
+      const amountTotal = session.amount_total != null ? session.amount_total / 100 : null;
+      return {
+        sessionId: session.id,
+        paymentAmount: amountTotal,
+      };
+    }
+  } catch (error) {
+    logger.warn(`Could not get checkout session for subscription ${subscriptionId}:`, error.message);
+  }
+  return { sessionId: null, paymentAmount: null };
+}
+
+/**
  * Handle subscription created
  */
 async function handleSubscriptionCreated(subscription) {
@@ -173,7 +199,10 @@ async function handleSubscriptionCreated(subscription) {
 
     // Resolve subscription metadata (with fallback to checkout session)
     const subscriptionMetadata = await resolveSubscriptionMetadata(stripe, subscription);
-    
+
+    // Get checkout session for this subscription (stripeSessionId and paymentAmount)
+    const { sessionId: stripeSessionId, paymentAmount } = await getCheckoutSessionForSubscription(stripe, subscription.id);
+
     // Check subscription metadata to determine if it's student or teacher
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
@@ -210,6 +239,8 @@ async function handleSubscriptionCreated(subscription) {
         paymentDate: subscription.current_period_start
           ? new Date(subscription.current_period_start * 1000)
           : new Date(),
+        stripeSessionId: stripeSessionId || null,
+        paymentAmount: paymentAmount != null ? paymentAmount : null,
       });
 
       logger.info(`Subscription created for student: ${studentEmail}`);
@@ -234,6 +265,8 @@ async function handleSubscriptionCreated(subscription) {
         paymentDate: subscription.current_period_start
           ? new Date(subscription.current_period_start * 1000)
           : new Date(),
+        stripeSessionId: stripeSessionId || null,
+        paymentAmount: paymentAmount != null ? paymentAmount : null,
       });
 
       logger.info(`Subscription created for teacher: ${email}`);
