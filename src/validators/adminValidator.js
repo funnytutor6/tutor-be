@@ -20,6 +20,18 @@ const paginationSearchSchema = z.object({
     .max(200)
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  teacherId: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  studentId: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
 });
 
 /**

@@ -40,7 +40,8 @@ const getAllTeachers = async ({ page, pageSize, search }) => {
       t.about,
       t.status,
       t.created,
-      t.updated
+      t.updated,
+      (SELECT COUNT(*) FROM TeacherPosts tp WHERE tp.teacherId = t.id) AS postCount
     FROM Teachers t
     ${whereClause}
     ORDER BY t.created DESC
@@ -55,6 +56,7 @@ const getAllTeachers = async ({ page, pageSize, search }) => {
     items: items.map((teacher) => ({
       ...teacher,
       status: teacher.status || "pending",
+      postCount: Number(teacher.postCount) || 0,
     })),
     total,
     page,
@@ -482,7 +484,22 @@ module.exports = {
   getAllPremiumStudentsForAdmin,
   // Reports
   getReportsData: async () => {
-    // 1. Signups (Daily - Last 30 Days)
+    // 1a. Signups (Daily - Last 7 Days)
+    const signupsLast7DaysQuery = `
+      SELECT DATE(created) as date, 'teacher' as type, COUNT(*) as count 
+      FROM Teachers 
+      WHERE created >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      GROUP BY DATE(created)
+      UNION ALL
+      SELECT DATE(created) as date, 'student' as type, COUNT(*) as count 
+      FROM Students 
+      WHERE created >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      GROUP BY DATE(created)
+      ORDER BY date
+    `;
+    const signupsLast7Days = await executeQuery(signupsLast7DaysQuery);
+
+    // 1b. Signups (Daily - Last 30 Days)
     const signupsDailyQuery = `
       SELECT DATE(created) as date, 'teacher' as type, COUNT(*) as count 
       FROM Teachers 
@@ -497,7 +514,7 @@ module.exports = {
     `;
     const signupsDaily = await executeQuery(signupsDailyQuery);
 
-    // 1b. Signups (Monthly - Last 12 Months)
+    // 1c. Signups (Monthly - Last 12 Months)
     const signupsMonthlyQuery = `
       SELECT DATE_FORMAT(created, '%Y-%m-01') as date, 'teacher' as type, COUNT(*) as count 
       FROM Teachers 
@@ -572,6 +589,7 @@ module.exports = {
 
     return {
       signups: {
+        last7Days: signupsLast7Days,
         daily: signupsDaily,
         monthly: signupsMonthly
       },

@@ -3,14 +3,24 @@ const logger = require("../utils/logger");
 
 /**
  * Get paginated teacher posts with search
- * @param {{ page: number, pageSize: number, search?: string }} options
+ * @param {{ page: number, pageSize: number, search?: string, teacherId?: string }} options
  * @returns {Promise<{ items: Array, total: number, page: number, pageSize: number, totalPages: number }>}
  */
-const getPaginatedTeacherPosts = async ({ page, pageSize, search }) => {
+const getPaginatedTeacherPosts = async ({
+  page,
+  pageSize,
+  search,
+  teacherId,
+}) => {
   const offset = (page - 1) * pageSize;
 
   let whereClause = "WHERE 1 = 1";
   const params = [];
+
+  if (teacherId) {
+    whereClause += " AND tp.teacherId = ?";
+    params.push(teacherId);
+  }
 
   if (search) {
     const like = `%${search}%`;
@@ -122,14 +132,24 @@ const getPaginatedStudents = async ({ page, pageSize, search }) => {
 
 /**
  * Get paginated student posts with search
- * @param {{ page: number, pageSize: number, search?: string }} options
+ * @param {{ page: number, pageSize: number, search?: string, studentId?: string }} options
  * @returns {Promise<{ items: Array, total: number, page: number, pageSize: number, totalPages: number }>}
  */
-const getPaginatedStudentPosts = async ({ page, pageSize, search }) => {
+const getPaginatedStudentPosts = async ({
+  page,
+  pageSize,
+  search,
+  studentId,
+}) => {
   const offset = (page - 1) * pageSize;
 
   let whereClause = "WHERE 1 = 1";
   const params = [];
+
+  if (studentId) {
+    whereClause += " AND sp.studentId = ?";
+    params.push(studentId);
+  }
 
   if (search) {
     const like = `%${search}%`;

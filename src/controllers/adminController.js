@@ -109,9 +109,14 @@ exports.getAllTeacherPostsForAdmin = async (req, res) => {
     if (!validation.valid) {
       return errorResponse(res, validation.errors.join(", "), 400);
     }
-    const { page, pageSize, search } = validation.value;
+    const { page, pageSize, search, teacherId } = validation.value;
 
-    const result = await getPaginatedTeacherPosts({ page, pageSize, search });
+    const result = await getPaginatedTeacherPosts({
+      page,
+      pageSize,
+      search,
+      teacherId,
+    });
 
     return successResponse(res, result);
   } catch (error) {
@@ -151,9 +156,14 @@ exports.getAllStudentPostsForAdmin = async (req, res) => {
     if (!validation.valid) {
       return errorResponse(res, validation.errors.join(", "), 400);
     }
-    const { page, pageSize, search } = validation.value;
+    const { page, pageSize, search, studentId } = validation.value;
 
-    const result = await getPaginatedStudentPosts({ page, pageSize, search });
+    const result = await getPaginatedStudentPosts({
+      page,
+      pageSize,
+      search,
+      studentId,
+    });
 
     return successResponse(res, result);
   } catch (error) {
