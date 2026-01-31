@@ -26,7 +26,7 @@ exports.handleWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log("event", event.data.object);
+  console.log("event", event);
   // Handle different event types
   try {
     switch (event.type) {
