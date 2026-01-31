@@ -681,6 +681,15 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       );
     }
 
+    if (subscriptionStatus === "canceled" || subscriptionStatus === "past_due") {
+      const updateStudentStatusQuery = `UPDATE Students SET hasPremium = 0 WHERE email = ?`;
+      await executeQuery(updateStudentStatusQuery, [studentEmail]);
+    }
+    if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
+      const updateStudentStatusQuery = `UPDATE Students SET hasPremium = 1 WHERE email = ?`;
+      await executeQuery(updateStudentStatusQuery, [studentEmail]);
+    }
+
     return {
       currentPeriodStart,
       currentPeriodEnd,
