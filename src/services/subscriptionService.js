@@ -345,6 +345,7 @@ const getInvoiceHistory = async (teacherEmail) => {
   }
 
   const customerId = records[0].stripeCustomerId;
+  const customer = records[0];
 
   // Get invoices from Stripe
   const invoices = await stripeService.getCustomerInvoices(customerId);
@@ -355,10 +356,8 @@ const getInvoiceHistory = async (teacherEmail) => {
     currency: invoice.currency.toUpperCase(),
     status: invoice.status,
     created: new Date(invoice.created * 1000),
-    periodStart: invoice.period_start
-      ? new Date(invoice.period_start * 1000)
-      : null,
-    periodEnd: invoice.period_end ? new Date(invoice.period_end * 1000) : null,
+    periodStart: new Date(customer.currentPeriodStart),
+    periodEnd: new Date(customer.currentPeriodEnd),
     invoicePdf: invoice.invoice_pdf,
     hostedInvoiceUrl: invoice.hosted_invoice_url,
   }));
@@ -739,8 +738,8 @@ const getStudentInvoiceHistory = async (studentEmail) => {
     currency: invoice.currency.toUpperCase(),
     status: invoice.status,
     created: new Date(invoice.created * 1000),
-    periodStart: invoice.period_start
-      ? new Date(invoice.period_start * 1000)
+    periodStart: invoice.currentPeriodStart
+      ? new Date(invoice.currentPeriodStart * 1000)
       : null,
     periodEnd: invoice.period_end ? new Date(invoice.period_end * 1000) : null,
     invoicePdf: invoice.invoice_pdf,
