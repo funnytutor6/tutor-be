@@ -406,14 +406,16 @@ const getInvoiceHistory = async (teacherEmail) => {
   // Get invoices from Stripe
   const invoices = await stripeService.getCustomerInvoices(customerId);
 
+   console.log("invoices.data", invoices.data);
+   console.log("customer", customer);
   return invoices.data.map((invoice) => ({
     id: invoice.id,
     amount: invoice.amount_paid / 100, // Convert from pence to pounds
     currency: invoice.currency.toUpperCase(),
     status: invoice.status,
     created: new Date(invoice.created * 1000),
-    periodStart: new Date(customer.currentPeriodStart),
-    periodEnd: new Date(customer.currentPeriodEnd),
+    periodStart: new Date(invoice.period_start * 1000),
+    periodEnd: new Date(invoice.period_end * 1000),
     invoicePdf: invoice.invoice_pdf,
     hostedInvoiceUrl: invoice.hosted_invoice_url,
   }));
@@ -683,7 +685,96 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       paymentDate: paymentDate || new Date(),
     };
   } else {
-    // Create new record
+    // No row found yet - re-check by email once more before INSERT to avoid duplicate rows
+    // (e.g. concurrent subscription.created and invoice.payment_succeeded both inserting)
+    const recheckByEmailQuery = `
+      SELECT id FROM findtitor_premium_student WHERE email = ? LIMIT 1
+    `;
+    const recheckExisting = await executeQuery(recheckByEmailQuery, [studentEmail]);
+
+    if (recheckExisting.length > 0) {
+      // Row was created by another request (race) - update it instead of inserting
+      logger.info(`Student subscription: row for ${studentEmail} appeared before INSERT, updating instead to avoid duplicate`);
+      const existingId = recheckExisting[0].id;
+      const updateFields = [];
+      const updateValues = [];
+
+      if (stripeCustomerId != null) {
+        updateFields.push("stripeCustomerId = ?");
+        updateValues.push(stripeCustomerId);
+      }
+      if (stripeSubscriptionId != null) {
+        updateFields.push("stripeSubscriptionId = ?");
+        updateValues.push(stripeSubscriptionId);
+      }
+      if (subscriptionStatus != null) {
+        updateFields.push("subscriptionStatus = ?");
+        updateValues.push(subscriptionStatus);
+      }
+      if (currentPeriodStart != null) {
+        updateFields.push("currentPeriodStart = ?");
+        updateValues.push(currentPeriodStart);
+      }
+      if (currentPeriodEnd != null) {
+        updateFields.push("currentPeriodEnd = ?");
+        updateValues.push(currentPeriodEnd);
+      }
+      if (canceledAt != null) {
+        updateFields.push("canceledAt = ?");
+        updateValues.push(canceledAt);
+      }
+      updateFields.push("cancelAtPeriodEnd = ?");
+      updateValues.push(cancelAtPeriodEnd || false);
+      if (subject != null) {
+        updateFields.push("subject = ?");
+        updateValues.push(subject);
+      }
+      if (mobile != null) {
+        updateFields.push("mobile = ?");
+        updateValues.push(mobile);
+      }
+      if (topix != null) {
+        updateFields.push("topix = ?");
+        updateValues.push(topix);
+      }
+      if (descripton != null) {
+        updateFields.push("descripton = ?");
+        updateValues.push(descripton);
+      }
+      if (paymentDate != null) {
+        updateFields.push("paymentDate = ?");
+        updateValues.push(paymentDate);
+      }
+      if (stripeSessionId != null) {
+        updateFields.push("stripeSessionId = ?");
+        updateValues.push(stripeSessionId);
+      }
+      if (paymentAmount != null) {
+        updateFields.push("paymentAmount = ?");
+        updateValues.push(paymentAmount);
+      }
+      const isPaid = subscriptionStatus === "active" || subscriptionStatus === "trialing";
+      updateFields.push("ispayed = ?");
+      updateValues.push(isPaid);
+      updateFields.push("updated = CURRENT_TIMESTAMP");
+      updateValues.push(existingId);
+
+      await executeQuery(
+        `UPDATE findtitor_premium_student SET ${updateFields.join(", ")} WHERE id = ?`,
+        updateValues
+      );
+
+      const updateStudentStatusQuery = `UPDATE Students SET hasPremium = 1 WHERE email = ?`;
+      await executeQuery(updateStudentStatusQuery, [studentEmail]);
+
+      return {
+        currentPeriodStart,
+        currentPeriodEnd,
+        paymentDate: paymentDate || new Date(),
+      };
+    }
+
+    // Create new record (no row for this email exists)
     const id = await generateId();
     const actualPaymentDate = paymentDate || new Date();
     const insertQuery = `
