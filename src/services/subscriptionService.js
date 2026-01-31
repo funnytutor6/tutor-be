@@ -126,30 +126,17 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
     canceledAt,
   } = subscriptionData;
 
-  // Find existing record by email OR stripeSubscriptionId to avoid duplicate rows
-  // when multiple webhooks (e.g. subscription.created + invoice.payment_succeeded) run in parallel
-  let checkQuery = `
-    SELECT id, mail FROM findtutor_premium_teachers WHERE mail = ?`;
-  const checkParams = [teacherEmail];
-  if (stripeSubscriptionId) {
-    checkQuery += ` OR stripeSubscriptionId = ?`;
-    checkParams.push(stripeSubscriptionId);
-  }
-  checkQuery += ` ORDER BY updated DESC LIMIT 1`;
-  const existing = await executeQuery(checkQuery, checkParams);
+  // Check if record exists
+  const checkQuery = `
+    SELECT id FROM findtutor_premium_teachers WHERE mail = ?`;
+  const existing = await executeQuery(checkQuery, [teacherEmail]);
 
   if (existing.length > 0) {
-    const existingId = existing[0].id;
-
     // Build dynamic UPDATE query - only update fields that are not null
     const updateFields = [];
     const updateValues = [];
 
-    // Ensure mail is set (e.g. if we found by stripeSubscriptionId and row had different email)
-    if (teacherEmail) {
-      updateFields.push("mail = ?");
-      updateValues.push(teacherEmail);
-    }
+    // Always update these fields if provided
     if (stripeCustomerId !== undefined && stripeCustomerId !== null) {
       updateFields.push("stripeCustomerId = ?");
       updateValues.push(stripeCustomerId);
@@ -196,14 +183,14 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       const updateQuery = `
         UPDATE findtutor_premium_teachers 
         SET ${updateFields.join(", ")}
-        WHERE id = ?`;
+        WHERE mail = ?`;
 
-      updateValues.push(existingId);
+      updateValues.push(teacherEmail);
 
       await executeQuery(updateQuery, updateValues);
 
       logger.info(
-        `Updated subscription in database for teacher: ${teacherEmail} (id: ${existingId})`
+        `Updated subscription in database for teacher: ${teacherEmail}`
       );
     }
   } else {
@@ -500,30 +487,19 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     canceledAt,
   } = subscriptionData;
 
-  // Find existing record by email OR stripeSubscriptionId to avoid duplicate rows
-  // when multiple webhooks (e.g. subscription.created + invoice.payment_succeeded) run in parallel
-  let checkQuery = `
-    SELECT id, email FROM findtitor_premium_student WHERE email = ?`;
-  const checkParams = [studentEmail];
-  if (stripeSubscriptionId) {
-    checkQuery += ` OR stripeSubscriptionId = ?`;
-    checkParams.push(stripeSubscriptionId);
-  }
-  checkQuery += ` ORDER BY updated DESC LIMIT 1`;
-  const existing = await executeQuery(checkQuery, checkParams);
+  console.log("subscriptionData", subscriptionData);
+  // Check if record exists
+  const checkQuery = `
+    SELECT id FROM findtitor_premium_student WHERE email = ?
+  `;
+  const existing = await executeQuery(checkQuery, [studentEmail]);
 
   if (existing.length > 0) {
-    const existingId = existing[0].id;
-
     // Build dynamic UPDATE query - only update fields that are not null
     const updateFields = [];
     const updateValues = [];
 
-    // Ensure email is set (e.g. if we found by stripeSubscriptionId and row had different email)
-    if (studentEmail) {
-      updateFields.push("email = ?");
-      updateValues.push(studentEmail);
-    }
+    // Always update these fields if provided
     if (stripeCustomerId !== undefined && stripeCustomerId !== null) {
       updateFields.push("stripeCustomerId = ?");
       updateValues.push(stripeCustomerId);
@@ -570,15 +546,15 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       const updateQuery = `
         UPDATE findtitor_premium_student 
         SET ${updateFields.join(", ")}
-        WHERE id = ?
+        WHERE email = ?
       `;
 
-      updateValues.push(existingId);
+      updateValues.push(studentEmail);
 
       await executeQuery(updateQuery, updateValues);
 
       logger.info(
-        `Updated subscription in database for student: ${studentEmail} (id: ${existingId})`
+        `Updated subscription in database for student: ${studentEmail}`
       );
     }
   } else {
