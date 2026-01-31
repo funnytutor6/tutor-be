@@ -328,7 +328,7 @@ const getOrCreateStudentPremiumPrice = async () => {
  * @returns {Promise<Object>} - Stripe checkout session
  */
 const createStudentPremiumSession = async (sessionData) => {
-  const { studentData, studentName, stripeCustomerId } = sessionData;
+  const { studentData,  stripeCustomerId } = sessionData;
 
   // Get or create product and price
   const { priceId } = await getOrCreateStudentPremiumPrice();
@@ -338,7 +338,7 @@ const createStudentPremiumSession = async (sessionData) => {
   if (!customerId) {
     customerId = await createOrRetrieveCustomer(
       studentData.email,
-      studentName || studentData.email
+      studentData.name
     );
   }
 

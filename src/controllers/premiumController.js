@@ -128,19 +128,15 @@ exports.createStudentPremiumCheckout = async (req, res) => {
     const stripeCustomerId =
       await subscriptionService.createOrRetrieveStudentCustomer(
         studentData.email,
-        studentData.name ,
-        studentData.descripton,
-        studentData.subject,
-        studentData.topix
+        studentData.name || studentData.email,
+        studentData.descripton || "",
+        studentData.subject || "",
+        studentData.topix || ""
       );
 
     const session = await stripeService.createStudentPremiumSession({
       studentData,
-      studentData.name 
       stripeCustomerId,
-      descripton,
-      subject,
-      topix,
     });
 
     return successResponse(res, { id: session.id });
