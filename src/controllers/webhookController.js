@@ -26,7 +26,7 @@ exports.handleWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log("event", event);
+  logger.info("Received webhook event:", { type: event.type, id: event.id });
   // Handle different event types
   try {
     switch (event.type) {
@@ -112,6 +112,44 @@ async function handleCheckoutSessionCompleted(session) {
 }
 
 /**
+ * Resolve subscription metadata - tries subscription.metadata first,
+ * then falls back to checkout session metadata if subscription metadata is empty
+ * @param {Object} stripe - Stripe instance
+ * @param {Object} subscription - Stripe subscription object
+ * @returns {Promise<Object>} - Resolved metadata
+ */
+async function resolveSubscriptionMetadata(stripe, subscription) {
+  const subscriptionMetadata = subscription.metadata || {};
+  
+  // If metadata has type or studentEmail, use it directly
+  if (subscriptionMetadata.type || subscriptionMetadata.studentEmail || subscriptionMetadata.teacherEmail) {
+    return subscriptionMetadata;
+  }
+  
+  // Metadata is empty or missing key fields - try to get from checkout session
+  logger.warn(`Subscription ${subscription.id} has empty/incomplete metadata, attempting to resolve from checkout session`);
+  
+  try {
+    // List checkout sessions filtered by subscription
+    const sessions = await stripe.checkout.sessions.list({
+      subscription: subscription.id,
+      limit: 1,
+    });
+    
+    if (sessions.data.length > 0) {
+      const sessionMetadata = sessions.data[0].metadata || {};
+      logger.info(`Resolved metadata from checkout session for subscription ${subscription.id}:`, sessionMetadata);
+      return sessionMetadata;
+    }
+  } catch (error) {
+    logger.warn(`Could not retrieve checkout session for subscription ${subscription.id}:`, error.message);
+  }
+  
+  // Return original metadata if fallback fails
+  return subscriptionMetadata;
+}
+
+/**
  * Handle subscription created
  */
 async function handleSubscriptionCreated(subscription) {
@@ -119,6 +157,7 @@ async function handleSubscriptionCreated(subscription) {
     subscriptionId: subscription.id,
     customerId: subscription.customer,
     status: subscription.status,
+    metadata: subscription.metadata,
   });
 
   try {
@@ -132,8 +171,10 @@ async function handleSubscriptionCreated(subscription) {
       return;
     }
 
+    // Resolve subscription metadata (with fallback to checkout session)
+    const subscriptionMetadata = await resolveSubscriptionMetadata(stripe, subscription);
+    
     // Check subscription metadata to determine if it's student or teacher
-    const subscriptionMetadata = subscription.metadata || {};
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
       subscriptionMetadata.type === "student_premium_subscription";
@@ -193,6 +234,7 @@ async function handleSubscriptionUpdated(subscription) {
   logger.info("Processing subscription updated:", {
     subscriptionId: subscription.id,
     status: subscription.status,
+    metadata: subscription.metadata,
   });
 
   try {
@@ -206,8 +248,10 @@ async function handleSubscriptionUpdated(subscription) {
       return;
     }
 
+    // Resolve subscription metadata (with fallback to checkout session)
+    const subscriptionMetadata = await resolveSubscriptionMetadata(stripe, subscription);
+    
     // Check subscription metadata to determine if it's student or teacher
-    const subscriptionMetadata = subscription.metadata || {};
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
       subscriptionMetadata.type === "student_premium_subscription";
@@ -266,6 +310,7 @@ async function handleSubscriptionUpdated(subscription) {
 async function handleSubscriptionDeleted(subscription) {
   logger.info("Processing subscription deleted:", {
     subscriptionId: subscription.id,
+    metadata: subscription.metadata,
   });
 
   try {
@@ -279,8 +324,10 @@ async function handleSubscriptionDeleted(subscription) {
       return;
     }
 
+    // Resolve subscription metadata (with fallback to checkout session)
+    const subscriptionMetadata = await resolveSubscriptionMetadata(stripe, subscription);
+    
     // Check subscription metadata to determine if it's student or teacher
-    const subscriptionMetadata = subscription.metadata || {};
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
       subscriptionMetadata.type === "student_premium_subscription";
@@ -384,6 +431,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
     invoiceId: invoice.id,
     subscriptionId: invoice.subscription,
     customerId: invoice.customer,
+    billingReason: invoice.billing_reason,
   });
 
   try {
@@ -405,34 +453,57 @@ async function handleInvoicePaymentSucceeded(invoice) {
       return;
     }
 
+    // Resolve subscription metadata (with fallback to checkout session)
+    const subscriptionMetadata = await resolveSubscriptionMetadata(stripe, subscription);
+    
     // Check subscription metadata to determine if it's student or teacher
-    const subscriptionMetadata = subscription.metadata || {};
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
       subscriptionMetadata.type === "student_premium_subscription";
 
+    // For subscription_create, the subscription.created event already updated the DB
+    // So we skip DB update here to avoid races and duplicate writes
+    // For renewals (subscription_cycle), we do update the DB with new period dates
+    const isInitialInvoice = invoice.billing_reason === "subscription_create";
+
+    if (isInitialInvoice) {
+      logger.info(`Skipping DB update for initial invoice (billing_reason: subscription_create), subscription already created by subscription.created event`);
+    }
+
     if (isStudentSubscription) {
       const studentEmail = subscriptionMetadata.studentEmail || email;
 
-      // Update student subscription period dates
-      const updatedSubscription = await subscriptionService.updateStudentSubscriptionInDatabase({
-        studentEmail,
-        stripeCustomerId: invoice.customer,
-        stripeSubscriptionId: invoice.subscription,
-        subscriptionStatus: subscription.status,
+      let updatedSubscription = {
         currentPeriodStart: subscription.current_period_start
           ? new Date(subscription.current_period_start * 1000)
           : null,
         currentPeriodEnd: subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000)
           : null,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-        canceledAt: subscription.canceled_at
-          ? new Date(subscription.canceled_at * 1000)
-          : null,
-      });
+        paymentDate: new Date(invoice.created * 1000),
+      };
 
-      logger.info(`Invoice payment succeeded for student: ${studentEmail}`);
+      // Only update DB for renewal invoices, not for initial subscription creation
+      if (!isInitialInvoice) {
+        updatedSubscription = await subscriptionService.updateStudentSubscriptionInDatabase({
+          studentEmail,
+          stripeCustomerId: invoice.customer,
+          stripeSubscriptionId: invoice.subscription,
+          subscriptionStatus: subscription.status,
+          currentPeriodStart: subscription.current_period_start
+            ? new Date(subscription.current_period_start * 1000)
+            : null,
+          currentPeriodEnd: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+          canceledAt: subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000)
+            : null,
+        });
+      }
+
+      logger.info(`Invoice payment succeeded for student: ${studentEmail} (billing_reason: ${invoice.billing_reason})`);
 
       // Get student name from database
       let studentName = "Student";
@@ -505,24 +576,37 @@ async function handleInvoicePaymentSucceeded(invoice) {
       });
     } else {
       // Teacher subscription
-      const updatedSubscription = await subscriptionService.updateSubscriptionInDatabase({
-        teacherEmail: email,
-        stripeCustomerId: invoice.customer,
-        stripeSubscriptionId: invoice.subscription,
-        subscriptionStatus: subscription.status,
+      let updatedSubscription = {
         currentPeriodStart: subscription.current_period_start
           ? new Date(subscription.current_period_start * 1000)
           : null,
         currentPeriodEnd: subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000)
           : null,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-        canceledAt: subscription.canceled_at
-          ? new Date(subscription.canceled_at * 1000)
-          : null,
-      });
+        paymentDate: new Date(invoice.created * 1000),
+      };
 
-      logger.info(`Invoice payment succeeded for teacher: ${email}`);
+      // Only update DB for renewal invoices, not for initial subscription creation
+      if (!isInitialInvoice) {
+        updatedSubscription = await subscriptionService.updateSubscriptionInDatabase({
+          teacherEmail: email,
+          stripeCustomerId: invoice.customer,
+          stripeSubscriptionId: invoice.subscription,
+          subscriptionStatus: subscription.status,
+          currentPeriodStart: subscription.current_period_start
+            ? new Date(subscription.current_period_start * 1000)
+            : null,
+          currentPeriodEnd: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+          canceledAt: subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000)
+            : null,
+        });
+      }
+
+      logger.info(`Invoice payment succeeded for teacher: ${email} (billing_reason: ${invoice.billing_reason})`);
 
       // Get teacher name from database
       let teacherName = "Tutor";
@@ -628,8 +712,10 @@ async function handleInvoicePaymentFailed(invoice) {
       return;
     }
 
+    // Resolve subscription metadata (with fallback to checkout session)
+    const subscriptionMetadata = await resolveSubscriptionMetadata(stripe, subscription);
+    
     // Check subscription metadata to determine if it's student or teacher
-    const subscriptionMetadata = subscription.metadata || {};
     const isStudentSubscription =
       subscriptionMetadata.studentEmail ||
       subscriptionMetadata.type === "student_premium_subscription";

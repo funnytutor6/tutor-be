@@ -112,7 +112,7 @@ const getSubscriptionStatus = async (teacherEmail) => {
 /**
  * Update subscription in database
  * @param {Object} subscriptionData - Subscription data from Stripe
- * @returns {Promise<void>}
+ * @returns {Promise<Object>}
  */
 const updateSubscriptionInDatabase = async (subscriptionData) => {
   const {
@@ -126,10 +126,31 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
     canceledAt,
   } = subscriptionData;
 
-  // Check if record exists
-  const checkQuery = `
-    SELECT id FROM findtutor_premium_teachers WHERE mail = ?`;
-  const existing = await executeQuery(checkQuery, [teacherEmail]);
+  // First, check if a record already exists with this stripeSubscriptionId (idempotency)
+  let existing = [];
+  let lookupField = "mail"; // Default lookup by email
+  let lookupValue = teacherEmail;
+
+  if (stripeSubscriptionId) {
+    const checkBySubscriptionQuery = `
+      SELECT id, mail FROM findtutor_premium_teachers WHERE stripeSubscriptionId = ? LIMIT 1`;
+    const existingBySubscription = await executeQuery(checkBySubscriptionQuery, [stripeSubscriptionId]);
+    
+    if (existingBySubscription.length > 0) {
+      // Found by subscription ID - use this record (prevents duplicates)
+      existing = existingBySubscription;
+      lookupField = "id";
+      lookupValue = existingBySubscription[0].id;
+      logger.info(`Found existing teacher subscription record by stripeSubscriptionId: ${stripeSubscriptionId}`);
+    }
+  }
+
+  // If not found by subscription ID, check by email
+  if (existing.length === 0) {
+    const checkByEmailQuery = `
+      SELECT id FROM findtutor_premium_teachers WHERE mail = ?`;
+    existing = await executeQuery(checkByEmailQuery, [teacherEmail]);
+  }
 
   if (existing.length > 0) {
     // Build dynamic UPDATE query - only update fields that are not null
@@ -183,16 +204,22 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       const updateQuery = `
         UPDATE findtutor_premium_teachers 
         SET ${updateFields.join(", ")}
-        WHERE mail = ?`;
+        WHERE ${lookupField} = ?`;
 
-      updateValues.push(teacherEmail);
+      updateValues.push(lookupValue);
 
       await executeQuery(updateQuery, updateValues);
 
       logger.info(
-        `Updated subscription in database for teacher: ${teacherEmail}`
+        `Updated subscription in database for teacher: ${teacherEmail} (lookup by ${lookupField})`
       );
     }
+
+    return {
+      currentPeriodStart,
+      currentPeriodEnd,
+      paymentDate: new Date(),
+    };
   } else {
     // Create new record
     const id = await generateId();
@@ -222,6 +249,12 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
     logger.info(
       `Created subscription record in database for teacher: ${teacherEmail}`
     );
+
+    return {
+      currentPeriodStart,
+      currentPeriodEnd,
+      paymentDate: new Date(),
+    };
   }
 };
 
@@ -473,7 +506,7 @@ const getStudentSubscriptionStatus = async (studentEmail) => {
 /**
  * Update student subscription in database
  * @param {Object} subscriptionData - Subscription data from Stripe
- * @returns {Promise<void>}
+ * @returns {Promise<Object>}
  */
 const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
   const {
@@ -487,12 +520,34 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     canceledAt,
   } = subscriptionData;
 
-  console.log("subscriptionData", subscriptionData);
-  // Check if record exists
-  const checkQuery = `
-    SELECT id FROM findtitor_premium_student WHERE email = ?
-  `;
-  const existing = await executeQuery(checkQuery, [studentEmail]);
+  logger.debug("updateStudentSubscriptionInDatabase called with:", { studentEmail, stripeSubscriptionId, subscriptionStatus });
+
+  // First, check if a record already exists with this stripeSubscriptionId (idempotency)
+  let existing = [];
+  let lookupField = "email"; // Default lookup by email
+  let lookupValue = studentEmail;
+
+  if (stripeSubscriptionId) {
+    const checkBySubscriptionQuery = `
+      SELECT id, email FROM findtitor_premium_student WHERE stripeSubscriptionId = ? LIMIT 1`;
+    const existingBySubscription = await executeQuery(checkBySubscriptionQuery, [stripeSubscriptionId]);
+    
+    if (existingBySubscription.length > 0) {
+      // Found by subscription ID - use this record (prevents duplicates)
+      existing = existingBySubscription;
+      lookupField = "id";
+      lookupValue = existingBySubscription[0].id;
+      logger.info(`Found existing student subscription record by stripeSubscriptionId: ${stripeSubscriptionId}`);
+    }
+  }
+
+  // If not found by subscription ID, check by email
+  if (existing.length === 0) {
+    const checkByEmailQuery = `
+      SELECT id FROM findtitor_premium_student WHERE email = ?
+    `;
+    existing = await executeQuery(checkByEmailQuery, [studentEmail]);
+  }
 
   if (existing.length > 0) {
     // Build dynamic UPDATE query - only update fields that are not null
@@ -546,17 +601,23 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       const updateQuery = `
         UPDATE findtitor_premium_student 
         SET ${updateFields.join(", ")}
-        WHERE email = ?
+        WHERE ${lookupField} = ?
       `;
 
-      updateValues.push(studentEmail);
+      updateValues.push(lookupValue);
 
       await executeQuery(updateQuery, updateValues);
 
       logger.info(
-        `Updated subscription in database for student: ${studentEmail}`
+        `Updated subscription in database for student: ${studentEmail} (lookup by ${lookupField})`
       );
     }
+
+    return {
+      currentPeriodStart,
+      currentPeriodEnd,
+      paymentDate: new Date(),
+    };
   } else {
     // Create new record
     const id = await generateId();

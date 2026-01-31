@@ -232,6 +232,7 @@ const createTeacherPremiumSession = async (sessionData) => {
     },
     subscription_data: {
       metadata: {
+        type: "premium_subscription",
         teacherEmail: teacherEmail,
         teacherName: teacherName || "",
       },
