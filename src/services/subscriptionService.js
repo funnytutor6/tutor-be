@@ -124,6 +124,10 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
     currentPeriodEnd,
     cancelAtPeriodEnd,
     canceledAt,
+    // Payment fields (optional)
+    paymentDate,
+    stripeSessionId,
+    paymentAmount,
   } = subscriptionData;
 
   // First, check if a record already exists with this stripeSubscriptionId (idempotency)
@@ -191,6 +195,20 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       updateValues.push(cancelAtPeriodEnd || false);
     }
 
+    // Payment fields (optional)
+    if (paymentDate !== undefined && paymentDate !== null) {
+      updateFields.push("paymentDate = ?");
+      updateValues.push(paymentDate);
+    }
+    if (stripeSessionId !== undefined && stripeSessionId !== null) {
+      updateFields.push("stripeSessionId = ?");
+      updateValues.push(stripeSessionId);
+    }
+    if (paymentAmount !== undefined && paymentAmount !== null) {
+      updateFields.push("paymentAmount = ?");
+      updateValues.push(paymentAmount);
+    }
+
     // Set ispaid based on subscription status
     const isPaid =
       subscriptionStatus === "active" || subscriptionStatus === "trialing";
@@ -218,16 +236,18 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
     return {
       currentPeriodStart,
       currentPeriodEnd,
-      paymentDate: new Date(),
+      paymentDate: paymentDate || new Date(),
     };
   } else {
     // Create new record
     const id = await generateId();
+    const actualPaymentDate = paymentDate || new Date();
     const insertQuery = `
       INSERT INTO findtutor_premium_teachers 
       (id, mail, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, 
-       currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, canceledAt, ispaid)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, canceledAt, ispaid,
+       paymentDate, stripeSessionId, paymentAmount)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const isPaid =
@@ -244,6 +264,9 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       cancelAtPeriodEnd || false,
       canceledAt,
       isPaid,
+      actualPaymentDate,
+      stripeSessionId || null,
+      paymentAmount || null,
     ]);
 
     logger.info(
@@ -253,7 +276,7 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
     return {
       currentPeriodStart,
       currentPeriodEnd,
-      paymentDate: new Date(),
+      paymentDate: actualPaymentDate,
     };
   }
 };
@@ -518,9 +541,18 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     currentPeriodEnd,
     cancelAtPeriodEnd,
     canceledAt,
+    // Form fields (optional - from checkout metadata)
+    subject,
+    mobile,
+    topix,
+    descripton,
+    // Payment fields (optional)
+    paymentDate,
+    stripeSessionId,
+    paymentAmount,
   } = subscriptionData;
 
-  logger.debug("updateStudentSubscriptionInDatabase called with:", { studentEmail, stripeSubscriptionId, subscriptionStatus });
+  logger.debug("updateStudentSubscriptionInDatabase called with:", { studentEmail, stripeSubscriptionId, subscriptionStatus, subject, mobile });
 
   // First, check if a record already exists with this stripeSubscriptionId (idempotency)
   let existing = [];
@@ -588,6 +620,38 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       updateValues.push(cancelAtPeriodEnd || false);
     }
 
+    // Form fields (optional - from checkout metadata)
+    if (subject !== undefined && subject !== null) {
+      updateFields.push("subject = ?");
+      updateValues.push(subject);
+    }
+    if (mobile !== undefined && mobile !== null) {
+      updateFields.push("mobile = ?");
+      updateValues.push(mobile);
+    }
+    if (topix !== undefined && topix !== null) {
+      updateFields.push("topix = ?");
+      updateValues.push(topix);
+    }
+    if (descripton !== undefined && descripton !== null) {
+      updateFields.push("descripton = ?");
+      updateValues.push(descripton);
+    }
+
+    // Payment fields (optional)
+    if (paymentDate !== undefined && paymentDate !== null) {
+      updateFields.push("paymentDate = ?");
+      updateValues.push(paymentDate);
+    }
+    if (stripeSessionId !== undefined && stripeSessionId !== null) {
+      updateFields.push("stripeSessionId = ?");
+      updateValues.push(stripeSessionId);
+    }
+    if (paymentAmount !== undefined && paymentAmount !== null) {
+      updateFields.push("paymentAmount = ?");
+      updateValues.push(paymentAmount);
+    }
+
     // Set ispayed based on subscription status
     const isPaid =
       subscriptionStatus === "active" || subscriptionStatus === "trialing";
@@ -616,16 +680,18 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     return {
       currentPeriodStart,
       currentPeriodEnd,
-      paymentDate: new Date(),
+      paymentDate: paymentDate || new Date(),
     };
   } else {
     // Create new record
     const id = await generateId();
+    const actualPaymentDate = paymentDate || new Date();
     const insertQuery = `
       INSERT INTO findtitor_premium_student 
       (id, email, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, 
-       currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, canceledAt, ispayed)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, canceledAt, ispayed,
+       subject, mobile, topix, descripton, paymentDate, stripeSessionId, paymentAmount)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const isPaid =
@@ -642,6 +708,13 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       cancelAtPeriodEnd || false,
       canceledAt,
       isPaid,
+      subject || null,
+      mobile || null,
+      topix || null,
+      descripton || null,
+      actualPaymentDate,
+      stripeSessionId || null,
+      paymentAmount || null,
     ]);
 
     // update student status to has premium
@@ -663,6 +736,7 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     currentPeriodStart,
     currentPeriodEnd,
     cancelAtPeriodEnd,
+    paymentDate: paymentDate || new Date(),
   };
 };
 

@@ -182,7 +182,10 @@ async function handleSubscriptionCreated(subscription) {
     if (isStudentSubscription) {
       const studentEmail = subscriptionMetadata.studentEmail || email;
 
-      // Update student subscription in database
+      // Extract form data from checkout session metadata
+      const { subject, mobile, topix, descripton } = subscriptionMetadata;
+
+      // Update student subscription in database with form data and payment info
       await subscriptionService.updateStudentSubscriptionInDatabase({
         studentEmail,
         stripeCustomerId: subscription.customer,
@@ -198,6 +201,15 @@ async function handleSubscriptionCreated(subscription) {
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000)
           : null,
+        // Form data from checkout metadata
+        subject: subject || null,
+        mobile: mobile || null,
+        topix: topix || null,
+        descripton: descripton || null,
+        // Payment date (subscription start)
+        paymentDate: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : new Date(),
       });
 
       logger.info(`Subscription created for student: ${studentEmail}`);
@@ -218,6 +230,10 @@ async function handleSubscriptionCreated(subscription) {
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000)
           : null,
+        // Payment date (subscription start)
+        paymentDate: subscription.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : new Date(),
       });
 
       logger.info(`Subscription created for teacher: ${email}`);
@@ -500,6 +516,9 @@ async function handleInvoicePaymentSucceeded(invoice) {
           canceledAt: subscription.canceled_at
             ? new Date(subscription.canceled_at * 1000)
             : null,
+          // Payment date from invoice
+          paymentDate: new Date(invoice.created * 1000),
+          paymentAmount: invoice.amount_paid / 100,
         });
       }
 
@@ -603,6 +622,9 @@ async function handleInvoicePaymentSucceeded(invoice) {
           canceledAt: subscription.canceled_at
             ? new Date(subscription.canceled_at * 1000)
             : null,
+          // Payment date from invoice
+          paymentDate: new Date(invoice.created * 1000),
+          paymentAmount: invoice.amount_paid / 100,
         });
       }
 

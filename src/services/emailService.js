@@ -724,7 +724,7 @@ const sendTeacherSubscriptionPaymentSuccess = async ({
   invoiceUrl,
 }) => {
   try {
-    const template = await loadTemplate("Tutor-subscription-payment-success");
+    const template = await loadTemplate("teacher-subscription-payment-success");
 
     // Get all admin emails for CC
     const adminEmails = await getAllAdminEmails();
