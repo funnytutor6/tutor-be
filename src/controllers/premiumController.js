@@ -117,8 +117,8 @@ exports.checkStudentPremiumStatus = async (req, res) => {
  */
 exports.createStudentPremiumCheckout = async (req, res) => {
   try {
-    const { studentData, studentName, descripton, subject, topix } = req.body;
-    console.log(studentData, studentName, descripton, subject, topix);
+    const { studentData } = req.body;
+    console.log(studentData);
 
     if (!studentData || !studentData.email) {
       return errorResponse(res, "Student data and email are required", 400);
@@ -128,15 +128,15 @@ exports.createStudentPremiumCheckout = async (req, res) => {
     const stripeCustomerId =
       await subscriptionService.createOrRetrieveStudentCustomer(
         studentData.email,
-        studentName || studentData.email,
-        descripton,
-        subject,
-        topix
+        studentData.name ,
+        studentData.descripton,
+        studentData.subject,
+        studentData.topix
       );
 
     const session = await stripeService.createStudentPremiumSession({
       studentData,
-      studentName,
+      studentData.name 
       stripeCustomerId,
       descripton,
       subject,
