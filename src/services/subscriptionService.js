@@ -389,7 +389,9 @@ const reactivateSubscription = async (teacherEmail) => {
 const getInvoiceHistory = async (teacherEmail) => {
   // Get customer ID from database
   const query = `
-    SELECT stripeCustomerId 
+    SELECT stripeCustomerId,  
+    currentPeriodStart,
+    currentPeriodEnd
     FROM findtutor_premium_teachers 
     WHERE mail = ? AND stripeCustomerId IS NOT NULL
     LIMIT 1
@@ -414,8 +416,8 @@ const getInvoiceHistory = async (teacherEmail) => {
     currency: invoice.currency.toUpperCase(),
     status: invoice.status,
     created: new Date(invoice.created * 1000),
-    periodStart: new Date(invoice.period_start * 1000),
-    periodEnd: new Date(invoice.period_end * 1000),
+    periodStart: new Date(customer.currentPeriodStart ),
+    periodEnd: new Date(customer.currentPeriodEnd ),
     invoicePdf: invoice.invoice_pdf,
     hostedInvoiceUrl: invoice.hosted_invoice_url,
   }));
