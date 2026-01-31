@@ -108,68 +108,68 @@ function getCurrentMySQLDateTime() {
 // ==================== FIXED STUDENT PREMIUM ROUTES ====================
 
 // Fixed POST route in studentPremium.js
-router.post("/", async (req, res) => {
-  try {
-    const {
-      subject = "",
-      email = "",
-      mobile = "",
-      topix = "",
-      descripton = "",
-      ispayed = false,
-      paymentDate = null,
-      stripeSessionId = null,
-      paymentAmount = null,
-    } = req.body;
+// router.post("/", async (req, res) => {
+//   try {
+//     const {
+//       subject = "",
+//       email = "",
+//       mobile = "",
+//       topix = "",
+//       descripton = "",
+//       ispayed = false,
+//       paymentDate = null,
+//       stripeSessionId = null,
+//       paymentAmount = null,
+//     } = req.body;
 
-    // CRITICAL FIX: Await the generateId() function
-    const id = await generateId(); // <-- Added 'await' here
+//     // CRITICAL FIX: Await the generateId() function
+//     const id = await generateId(); // <-- Added 'await' here
 
-    // Fix the paymentDate format for MySQL
-    let formattedPaymentDate = null;
-    if (paymentDate) {
-      if (typeof paymentDate === "string" && paymentDate.includes("T")) {
-        // ISO string format - convert to MySQL DATETIME
-        formattedPaymentDate = formatDateForMySQL(paymentDate);
-      } else {
-        // Already in correct format or use as-is
-        formattedPaymentDate = paymentDate;
-      }
-    }
+//     // Fix the paymentDate format for MySQL
+//     let formattedPaymentDate = null;
+//     if (paymentDate) {
+//       if (typeof paymentDate === "string" && paymentDate.includes("T")) {
+//         // ISO string format - convert to MySQL DATETIME
+//         formattedPaymentDate = formatDateForMySQL(paymentDate);
+//       } else {
+//         // Already in correct format or use as-is
+//         formattedPaymentDate = paymentDate;
+//       }
+//     }
 
-    const query = `
-      INSERT INTO findtitor_premium_student 
-      (id, subject, email, mobile, topix, descripton, ispayed, paymentDate, stripeSessionId, paymentAmount)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+//     const query = `
+//       INSERT INTO findtitor_premium_student 
+//       (id, subject, email, mobile, topix, descripton, ispayed, paymentDate, stripeSessionId, paymentAmount)
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//     `;
 
-    const params = [
-      id,
-      subject,
-      email,
-      mobile,
-      topix,
-      descripton,
-      ispayed,
-      formattedPaymentDate,
-      stripeSessionId,
-      paymentAmount,
-    ];
+//     const params = [
+//       id,
+//       subject,
+//       email,
+//       mobile,
+//       topix,
+//       descripton,
+//       ispayed,
+//       formattedPaymentDate,
+//       stripeSessionId,
+//       paymentAmount,
+//     ];
 
-    await executeQuery(query, params);
+//     await executeQuery(query, params);
 
-    // Return the created record
-    const createdRecord = await executeQuery(
-      "SELECT * FROM findtitor_premium_student WHERE id = ?",
-      [id]
-    );
+//     // Return the created record
+//     const createdRecord = await executeQuery(
+//       "SELECT * FROM findtitor_premium_student WHERE id = ?",
+//       [id]
+//     );
 
-    res.status(201).json(createdRecord[0]);
-  } catch (error) {
-    console.error("Error creating student premium record:", error);
-    res.status(500).json({ error: "Failed to create record" });
-  }
-});
+//     res.status(201).json(createdRecord[0]);
+//   } catch (error) {
+//     console.error("Error creating student premium record:", error);
+//     res.status(500).json({ error: "Failed to create record" });
+//   }
+// });
 
 // PATCH update student premium record
 router.patch("/:id", async (req, res) => {

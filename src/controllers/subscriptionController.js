@@ -176,14 +176,15 @@ exports.reactivateStudentSubscription = async (req, res) => {
  */
 exports.getStudentInvoiceHistory = async (req, res) => {
   try {
+    const queryEmail = req.query?.email;
     const user = req?.user;
 
-    if (!user?.email) {
+    if (!user?.email && !queryEmail) {
       return errorResponse(res, "Student email is required", 400);
     }
 
     const invoices = await subscriptionService.getStudentInvoiceHistory(
-      user.email
+      user?.email || queryEmail
     );
 
     return successResponse(res, invoices);
