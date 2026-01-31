@@ -415,7 +415,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
       const studentEmail = subscriptionMetadata.studentEmail || email;
 
       // Update student subscription period dates
-      await subscriptionService.updateStudentSubscriptionInDatabase({
+      const updatedSubscription = await subscriptionService.updateStudentSubscriptionInDatabase({
         studentEmail,
         stripeCustomerId: invoice.customer,
         stripeSubscriptionId: invoice.subscription,
@@ -448,14 +448,14 @@ async function handleInvoicePaymentSucceeded(invoice) {
 
       // Format payment details
       const paymentAmount = `$${(invoice.amount_paid / 100).toFixed(2)}`;
-      const paymentDate = new Date(invoice.created * 1000).toLocaleDateString("en-US", {
+      const paymentDate = updatedSubscription.paymentDate || new Date(invoice.created * 1000).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
       });
-      const periodStart = subscription.current_period_start
+      const periodStart = updatedSubscription.currentPeriodStart || subscription.current_period_start
         ? new Date(subscription.current_period_start * 1000).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -478,7 +478,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
           day: "numeric",
         });
       const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
-      const nextBillingDate = subscription.current_period_end
+      const nextBillingDate = updatedSubscription.currentPeriodEnd || subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -490,7 +490,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
           day: "numeric",
         });
 
-      // Send payment success email
+      // Send payment success email 
       await emailService.sendStudentSubscriptionPaymentSuccess({
         studentEmail,
         studentName,
@@ -505,7 +505,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
       });
     } else {
       // Teacher subscription
-      await subscriptionService.updateSubscriptionInDatabase({
+      const updatedSubscription = await subscriptionService.updateSubscriptionInDatabase({
         teacherEmail: email,
         stripeCustomerId: invoice.customer,
         stripeSubscriptionId: invoice.subscription,
@@ -538,14 +538,14 @@ async function handleInvoicePaymentSucceeded(invoice) {
 
       // Format payment details
       const paymentAmount = `$${(invoice.amount_paid / 100).toFixed(2)}`;
-      const paymentDate = new Date(invoice.created * 1000).toLocaleDateString("en-US", {
+      const paymentDate = updatedSubscription.paymentDate || new Date(invoice.created * 1000).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
       });
-      const periodStart = subscription.current_period_start
+      const periodStart = updatedSubscription.currentPeriodStart || subscription.current_period_start
         ? new Date(subscription.current_period_start * 1000).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -568,7 +568,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
           day: "numeric",
         });
       const subscriptionPeriod = `${periodStart} - ${periodEnd}`;
-      const nextBillingDate = subscription.current_period_end
+      const nextBillingDate = updatedSubscription.currentPeriodEnd || subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
@@ -641,7 +641,7 @@ async function handleInvoicePaymentFailed(invoice) {
     if (isStudentSubscription) {
       const studentEmail = subscriptionMetadata.studentEmail || email;
 
-      await subscriptionService.updateStudentSubscriptionInDatabase({
+      const updatedSubscription = await subscriptionService.updateStudentSubscriptionInDatabase({
         studentEmail,
         stripeCustomerId: invoice.customer,
         stripeSubscriptionId: invoice.subscription,
@@ -674,14 +674,14 @@ async function handleInvoicePaymentFailed(invoice) {
         studentEmail,
         studentName,
         paymentAmount: `$${(invoice.amount_due / 100).toFixed(2)}`,
-        paymentDate: new Date(invoice.created * 1000).toLocaleDateString(),
+        paymentDate: updatedSubscription.paymentDate || new Date(invoice.created * 1000).toLocaleDateString(),
         invoiceUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
       });
 
       logger.warn(`Invoice payment failed for student: ${studentEmail}`);
     } else {
       // Teacher subscription
-      await subscriptionService.updateSubscriptionInDatabase({
+      const updatedSubscription = await subscriptionService.updateSubscriptionInDatabase({
         teacherEmail: email,
         stripeCustomerId: invoice.customer,
         stripeSubscriptionId: invoice.subscription,
@@ -714,7 +714,7 @@ async function handleInvoicePaymentFailed(invoice) {
         teacherEmail: email,
         teacherName,
         paymentAmount: `$${(invoice.amount_due / 100).toFixed(2)}`,
-        paymentDate: new Date(invoice.created * 1000).toLocaleDateString(),
+        paymentDate: updatedSubscription.paymentDate || new Date(invoice.created * 1000).toLocaleDateString(),
         invoiceUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
       });
 

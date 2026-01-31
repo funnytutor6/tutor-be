@@ -594,6 +594,16 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
       `Created subscription record in database for student: ${studentEmail}`
     );
   }
+
+  return {
+    studentEmail,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    subscriptionStatus,
+    currentPeriodStart,
+    currentPeriodEnd,
+    cancelAtPeriodEnd,
+  };
 };
 
 /**
