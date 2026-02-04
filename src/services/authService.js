@@ -70,11 +70,11 @@ const registerTeacher = async (teacherData) => {
   } = teacherData;
 
   // Check if teacher already exists
-  const checkQuery = "SELECT * FROM Teachers WHERE email = ?";
-  const existing = await executeQuery(checkQuery, [email]);
+  const checkQuery = "SELECT * FROM Teachers WHERE email = ? or phoneNumber = ?";
+  const existing = await executeQuery(checkQuery, [email, phoneNumber]);
 
   if (existing.length > 0) {
-    throw new Error("Tutor with this email already exists");
+    throw new Error("Tutor with this email or phone number already exists");
   }
 
   // Generate new teacher ID

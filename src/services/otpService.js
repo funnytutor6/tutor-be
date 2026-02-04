@@ -51,9 +51,6 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
       );
     }
 
-    // Prepare message content
-    const messageBody = `*Funny Tutor - Phone Verification*\n\nYour verification code is: *${otpCode}*\n\nThis code will expire in ${OTP_EXPIRY_MINUTES} minutes.\n\nIf you didn't request this code, please ignore this message.`;
-
     // WhatsApp Cloud API endpoint
     const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
     // Send message via WhatsApp Business API
@@ -63,10 +60,34 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to: cleanPhoneNumber,
-        type: "text",
-        text: {
-          preview_url: false,
-          body: messageBody,
+        type: "template",
+        template: {
+          name: "phone_verification_otp_new",
+          language: {
+            code: "en",
+          },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                {
+                  type: "text",
+                  text: otpCode,
+                },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: 0,
+              parameters: [
+                {
+                  type: "text",
+                  text: otpCode,
+                },
+              ],
+            },
+          ],
         },
       },
       {
@@ -194,39 +215,39 @@ const createOrUpdateOTP = async (userId, userType, phoneNumber) => {
  */
 const sendOTP = async (userId, userType, phoneNumber) => {
   // Check rate limiting - can't resend within cooldown period
-  // const recentQuery = `
-  //   SELECT * FROM OTPVerifications
-  //   WHERE userId = ? AND userType = ? AND phoneNumber = ?
-  //   AND lastSentAt IS NOT NULL
-  //   AND lastSentAt > DATE_SUB(NOW(), INTERVAL ? SECOND)
-  //   ORDER BY lastSentAt DESC
-  //   LIMIT 1
-  // `;
-  // const recent = await executeQuery(recentQuery, [
-  //   userId,
-  //   userType,
-  //   phoneNumber,
-  //   OTP_RESEND_COOLDOWN_SECONDS,
-  // ]);
+  const recentQuery = `
+    SELECT * FROM OTPVerifications
+    WHERE userId = ? AND userType = ? AND phoneNumber = ?
+    AND lastSentAt IS NOT NULL
+    AND lastSentAt > DATE_SUB(NOW(), INTERVAL ? SECOND)
+    ORDER BY lastSentAt DESC
+    LIMIT 1
+  `;
+  const recent = await executeQuery(recentQuery, [
+    userId,
+    userType,
+    phoneNumber,
+    OTP_RESEND_COOLDOWN_SECONDS,
+  ]);
 
-  // console.log("recent", recent);
-  // if (recent.length > 0) {
-  //   const lastSent = new Date(recent[0].lastSentAt);
-  //   const now = new Date();
-  //   const secondsRemaining = Math.ceil(
-  //     OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
-  //   );
-  //   throw new Error(
-  //     `Please wait ${secondsRemaining} seconds before requesting a new OTP`
-  //   );
-  // }
+  console.log("recent", recent);
+  if (recent.length > 0) {
+    const lastSent = new Date(recent[0].lastSentAt);
+    const now = new Date();
+    const secondsRemaining = Math.ceil(
+      OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
+    );
+    throw new Error(
+      `Please wait ${secondsRemaining} seconds before requesting a new OTP`
+    );
+  }
 
   // Create or update OTP
   const otpRecord = await createOrUpdateOTP(userId, userType, phoneNumber);
 
   console.log("otpRecord", otpRecord);
   // Send OTP via WhatsApp
-  //   await sendWhatsAppOTP(phoneNumber, otpRecord.otpCode);
+    await sendWhatsAppOTP(phoneNumber, otpRecord.otpCode);
 
   return {
     success: true,
@@ -458,23 +479,23 @@ const sendPasswordResetOTP = async (userId, userType, email) => {
     LIMIT 1
   `;
   // Use email as phoneNumber field
-  // const recent = await executeQuery(recentQuery, [
-  //   userId,
-  //   userType,
-  //   email,
-  //   OTP_RESEND_COOLDOWN_SECONDS,
-  // ]);
+  const recent = await executeQuery(recentQuery, [
+    userId,
+    userType,
+    email,
+    OTP_RESEND_COOLDOWN_SECONDS,
+  ]);
 
-  // if (recent.length > 0) {
-  //   const lastSent = new Date(recent[0].lastSentAt);
-  //   const now = new Date();
-  //   const secondsRemaining = Math.ceil(
-  //     OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
-  //   );
-  //   throw new Error(
-  //     `Please wait ${secondsRemaining} seconds before requesting a new OTP`
-  //   );
-  // }
+  if (recent.length > 0) {
+    const lastSent = new Date(recent[0].lastSentAt);
+    const now = new Date();
+    const secondsRemaining = Math.ceil(
+      OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
+    );
+    throw new Error(
+      `Please wait ${secondsRemaining} seconds before requesting a new OTP`
+    );
+  }
 
   // Create or update OTP
   const otpRecord = await createOrUpdatePasswordResetOTP(
