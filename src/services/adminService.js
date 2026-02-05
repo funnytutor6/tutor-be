@@ -10,7 +10,7 @@ const logger = require("../utils/logger");
 const getAllTeachers = async ({ page, pageSize, search }) => {
   const offset = (page - 1) * pageSize;
 
-  let whereClause = "WHERE 1 = 1";
+  let whereClause = "WHERE EXISTS (SELECT 1 FROM OTPVerifications o WHERE o.userId = t.id AND o.userType = 'teacher' AND o.isVerified = 1)";
   const params = [];
 
   if (search) {
@@ -340,9 +340,11 @@ const getDashboardMetrics = async () => {
     totalStudentSubscriptionsResult,
     newsletterSubscribersResult,
   ] = await Promise.all([
-    executeQuery("SELECT COUNT(*) as count FROM Teachers"),
     executeQuery(
-      "SELECT COUNT(*) as count FROM Teachers WHERE status = 'pending'"
+      "SELECT COUNT(*) as count FROM Teachers t WHERE EXISTS (SELECT 1 FROM OTPVerifications o WHERE o.userId = t.id AND o.userType = 'teacher' AND o.isVerified = 1)"
+    ),
+    executeQuery(
+      "SELECT COUNT(*) as count FROM Teachers t WHERE t.status = 'pending' AND EXISTS (SELECT 1 FROM OTPVerifications o WHERE o.userId = t.id AND o.userType = 'teacher' AND o.isVerified = 1)"
     ),
     executeQuery("SELECT COUNT(*) as count FROM Students"),
     executeQuery("SELECT COUNT(*) as count FROM StudentPosts"),
