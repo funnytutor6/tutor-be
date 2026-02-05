@@ -275,7 +275,7 @@ const setupDatabase = async () => {
       }
     } catch (aboutError) {
       logger.error(
-        "Error adding 'about' column to Teachers table:",
+        "Error adding 'otpVerified' column to Teachers table:",
         aboutError.message
       );
     }
@@ -311,6 +311,60 @@ const setupDatabase = async () => {
           dropError.message
         );
       }
+    }
+
+    // Add 'archived' column to TeacherPosts if it doesn't exist
+    try {
+      const [teacherPostsColumns] = await connection.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'TeacherPosts' AND COLUMN_NAME = 'archived'`,
+        [process.env.DB_NAME]
+      );
+
+      if (teacherPostsColumns.length === 0) {
+        await connection.query(
+          `ALTER TABLE TeacherPosts 
+           ADD COLUMN archived BOOLEAN DEFAULT FALSE 
+           COMMENT 'Whether teacher post is archived' 
+           AFTER priceType,
+           ADD INDEX idx_teacher_posts_archived (archived)`
+        );
+        logger.info("✓ Added 'archived' column to TeacherPosts table");
+      } else {
+        logger.info("✓ 'archived' column already exists in TeacherPosts table");
+      }
+    } catch (archivedError) {
+      logger.error(
+        "Error adding 'archived' column to TeacherPosts table:",
+        archivedError.message
+      );
+    }
+
+    // Add 'archived' column to StudentPosts if it doesn't exist
+    try {
+      const [studentPostsColumns] = await connection.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'StudentPosts' AND COLUMN_NAME = 'archived'`,
+        [process.env.DB_NAME]
+      );
+
+      if (studentPostsColumns.length === 0) {
+        await connection.query(
+          `ALTER TABLE StudentPosts 
+           ADD COLUMN archived BOOLEAN DEFAULT FALSE 
+           COMMENT 'Whether student post is archived' 
+           AFTER grade,
+           ADD INDEX idx_student_posts_archived (archived)`
+        );
+        logger.info("✓ Added 'archived' column to StudentPosts table");
+      } else {
+        logger.info("✓ 'archived' column already exists in StudentPosts table");
+      }
+    } catch (archivedError) {
+      logger.error(
+        "Error adding 'archived' column to StudentPosts table:",
+        archivedError.message
+      );
     }
 
     const tablesToMigrate = [
@@ -365,11 +419,13 @@ const setupDatabase = async () => {
         townOrDistrict VARCHAR(255),
         price DECIMAL(10,2) NOT NULL,
         priceType ENUM('hourly', 'daily', 'weekly', 'monthly') DEFAULT 'hourly',
+        archived BOOLEAN DEFAULT FALSE,
         created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_teacher_posts_teacher (teacherId),
         INDEX idx_teacher_posts_subject (subject),
-        INDEX idx_teacher_posts_location (location)
+        INDEX idx_teacher_posts_location (location),
+        INDEX idx_teacher_posts_archived (archived)
       )
     `);
     logger.info("Table TeacherPosts created");
@@ -491,11 +547,13 @@ const setupDatabase = async () => {
         description TEXT,
         townOrCity VARCHAR(255),
         grade ENUM('student', 'university-student', 'adult') DEFAULT 'student',
+        archived BOOLEAN DEFAULT FALSE,
         created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_student_posts_student (studentId),
         INDEX idx_student_posts_subject (subject),
         INDEX idx_student_posts_lesson_type (lessonType),
+        INDEX idx_student_posts_archived (archived),
         FOREIGN KEY (studentId) REFERENCES Students(id) ON DELETE CASCADE
       )
     `);

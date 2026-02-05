@@ -76,7 +76,6 @@ const registerTeacher = async (teacherData) => {
   if (existing.length > 0) {
     throw new Error("Tutor with this email or phone number already exists");
   }
-
   // Generate new teacher ID
   const teacherId = await generateId();
 

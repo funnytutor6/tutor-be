@@ -209,11 +209,37 @@ const updateSubscriptionInDatabase = async (subscriptionData) => {
       updateValues.push(paymentAmount);
     }
 
+
+
     // Set ispaid based on subscription status
     const isPaid =
       subscriptionStatus === "active" || subscriptionStatus === "trialing";
     updateFields.push("ispaid = ?");
     updateValues.push(isPaid);
+
+    
+    if (subscriptionStatus === "canceled" || subscriptionStatus === "past_due") {
+      // Archive all teacher posts beyond the first 2 (free tier limit)
+      const archivePostsQuery = `
+        UPDATE TeacherPosts tp
+        INNER JOIN Teachers t ON tp.teacherId = t.id
+        SET tp.archived = 1
+        WHERE t.email = ?
+        AND tp.id NOT IN (
+          SELECT id FROM (
+            SELECT tp2.id 
+            FROM TeacherPosts tp2
+            INNER JOIN Teachers t2 ON tp2.teacherId = t2.id
+            WHERE t2.email = ?
+            ORDER BY tp2.created ASC
+            LIMIT 2
+          ) AS first_posts
+        )
+      `;
+      await executeQuery(archivePostsQuery, [teacherEmail, teacherEmail]);
+      
+      logger.info(`Archived teacher posts beyond first 2 for ${teacherEmail} due to subscription ${subscriptionStatus}`);
+    }
 
     // Always update the updated timestamp
     updateFields.push("updated = CURRENT_TIMESTAMP");
@@ -408,8 +434,6 @@ const getInvoiceHistory = async (teacherEmail) => {
   // Get invoices from Stripe
   const invoices = await stripeService.getCustomerInvoices(customerId);
 
-   console.log("invoices.data", invoices.data);
-   console.log("customer", customer);
   return invoices.data.map((invoice) => ({
     id: invoice.id,
     amount: invoice.amount_paid / 100, // Convert from pence to pounds
@@ -684,6 +708,27 @@ const updateStudentSubscriptionInDatabase = async (subscriptionData) => {
     if (subscriptionStatus === "canceled" || subscriptionStatus === "past_due") {
       const updateStudentStatusQuery = `UPDATE Students SET hasPremium = 0 WHERE email = ?`;
       await executeQuery(updateStudentStatusQuery, [studentEmail]);
+      
+      // Archive all student posts beyond the first 2 (free tier limit)
+      const archivePostsQuery = `
+        UPDATE StudentPosts sp
+        INNER JOIN Students s ON sp.studentId = s.id
+        SET sp.archived = 1
+        WHERE s.email = ?
+        AND sp.id NOT IN (
+          SELECT id FROM (
+            SELECT sp2.id 
+            FROM StudentPosts sp2
+            INNER JOIN Students s2 ON sp2.studentId = s2.id
+            WHERE s2.email = ?
+            ORDER BY sp2.created ASC
+            LIMIT 2
+          ) AS first_posts
+        )
+      `;
+      await executeQuery(archivePostsQuery, [studentEmail, studentEmail]);
+      
+      logger.info(`Archived student posts beyond first 2 for ${studentEmail} due to subscription ${subscriptionStatus}`);
     }
     if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
       const updateStudentStatusQuery = `UPDATE Students SET hasPremium = 1 WHERE email = ?`;

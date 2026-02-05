@@ -19,7 +19,6 @@ exports.registerTeacher = async (req, res) => {
     }
 
     const result = await authService.registerTeacher(req.body);
-    console.log("result", result);
 
     // Send OTP after registration
     const otpService = require("../services/otpService");

@@ -118,7 +118,6 @@ exports.checkStudentPremiumStatus = async (req, res) => {
 exports.createStudentPremiumCheckout = async (req, res) => {
   try {
     const { studentData } = req.body;
-    console.log(studentData);
 
     if (!studentData || !studentData.email) {
       return errorResponse(res, "Student data and email are required", 400);

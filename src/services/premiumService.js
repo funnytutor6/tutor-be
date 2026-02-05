@@ -320,8 +320,6 @@ const getStudentPremiumStatus = async (studentEmail) => {
     let nextPaymentDate = null;
     let daysRemaining = null;
 
-    console.log("record", record);
-
     if (record.stripeSubscriptionId && record.subscriptionStatus === "active") {
       // Check if current period hasn't ended
       if (record.currentPeriodEnd) {

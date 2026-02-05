@@ -401,7 +401,9 @@ const getAllPublicTeacherPosts = async (userId) => {
     LEFT JOIN ConnectionRequests cr ON cr.postId = tp.id AND cr.studentId = ?`;
   }
 
+
   query += `
+    WHERE tp.archived = 0
     ORDER BY tp.created DESC`;
 
   // Build parameters array
@@ -455,6 +457,7 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
     }
     FROM StudentPosts sp
     JOIN Students s ON sp.studentId = s.id
+    WHERE sp.archived = 0
     ORDER BY sp.created DESC
   `;
   const posts = await executeQuery(query, []);
@@ -478,7 +481,7 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
       : ""
     } FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
-    WHERE tp.id = ?
+    WHERE tp.id = ? AND tp.archived = 0
     ORDER BY tp.created DESC
   `;
   const posts = await executeQuery(query, [id]);
