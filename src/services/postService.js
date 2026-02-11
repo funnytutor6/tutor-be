@@ -121,9 +121,23 @@ const deleteStudentPost = async (id) => {
  */
 const getAllTeacherPosts = async (teacherId) => {
   const query = `
-    SELECT tp.*, t.name as teacherName, t.email as teacherEmail, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto
+    SELECT 
+      tp.*, 
+      t.name as teacherName, 
+      t.email as teacherEmail, 
+      t.phoneNumber, 
+      t.cityOrTown, 
+      t.country, 
+      t.profilePhoto,
+      COALESCE(avg_rating.averageRating, 0) as averageRating,
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount
     FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
+    LEFT JOIN (
+      SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
+      FROM TutorReviews
+      GROUP BY teacherId
+    ) avg_rating ON t.id = avg_rating.teacherId
     WHERE tp.teacherId = ?
     ORDER BY tp.created DESC
   `;
@@ -137,9 +151,23 @@ const getAllTeacherPosts = async (teacherId) => {
  */
 const getTeacherPostsByTeacherId = async (teacherId) => {
   const query = `
-    SELECT tp.*, t.name as teacherName, t.email as teacherEmail, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto
+    SELECT 
+      tp.*, 
+      t.name as teacherName, 
+      t.email as teacherEmail, 
+      t.phoneNumber, 
+      t.cityOrTown, 
+      t.country, 
+      t.profilePhoto,
+      COALESCE(avg_rating.averageRating, 0) as averageRating,
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount
     FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
+    LEFT JOIN (
+      SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
+      FROM TutorReviews
+      GROUP BY teacherId
+    ) avg_rating ON t.id = avg_rating.teacherId
     WHERE tp.teacherId = ?
     ORDER BY tp.created DESC
   `;
@@ -182,8 +210,8 @@ const createTeacherPost = async (postData) => {
   if (!validPriceTypes.includes(normalizedPriceType)) {
     throw new Error(
       `Invalid priceType: ${normalizedPriceType}. Must be one of: ${validPriceTypes.join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     );
   }
 
@@ -242,8 +270,8 @@ const updateTeacherPost = async (id, updateData) => {
   if (!validPriceTypes.includes(normalizedPriceType)) {
     throw new Error(
       `Invalid priceType: ${normalizedPriceType}. Must be one of: ${validPriceTypes.join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     );
   }
 
@@ -334,7 +362,7 @@ const getAllPublicTeacherPosts = async (userId) => {
   let hasPremium = false;
 
   if (userId) {
-    const studentQuery = "SELECT * FROM Students WHERE id = ?";
+    const studentQuery = "SELECT id, hasPremium FROM Students WHERE id = ?";
     const studentResult = await executeQuery(studentQuery, [userId]);
     if (studentResult.length > 0) {
       isStudent = true;
@@ -342,7 +370,7 @@ const getAllPublicTeacherPosts = async (userId) => {
     }
   }
 
-  // Build query with LEFT JOIN for connection requests if user is a student
+  // Build query
   let query = `
     SELECT 
       tp.id, 
@@ -358,9 +386,11 @@ const getAllPublicTeacherPosts = async (userId) => {
       t.id as teacherId, 
       t.name as teacherName, 
       t.cityOrTown, 
-      t.country`;
+      t.country,
+      COALESCE(avg_rating.averageRating, 0) as averageRating,
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount`;
 
-  // Add student info if premium (maintaining backward compatibility)
+  // Add student info if premium
   if (hasPremium) {
     query += `, 
       s.id as studentId, 
@@ -387,9 +417,14 @@ const getAllPublicTeacherPosts = async (userId) => {
 
   query += `
     FROM TeacherPosts tp
-    JOIN Teachers t ON tp.teacherId = t.id`;
+    JOIN Teachers t ON tp.teacherId = t.id
+    LEFT JOIN (
+      SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
+      FROM TutorReviews
+      GROUP BY teacherId
+    ) avg_rating ON t.id = avg_rating.teacherId`;
 
-  // LEFT JOIN with Students if premium (for backward compatibility)
+  // LEFT JOIN with Students if premium
   if (hasPremium) {
     query += `
     LEFT JOIN Students s ON s.id = ?`;
@@ -400,7 +435,6 @@ const getAllPublicTeacherPosts = async (userId) => {
     query += `
     LEFT JOIN ConnectionRequests cr ON cr.postId = tp.id AND cr.studentId = ?`;
   }
-
 
   query += `
     WHERE tp.archived = 0
@@ -415,9 +449,9 @@ const getAllPublicTeacherPosts = async (userId) => {
     params.push(userId);
   }
 
-  const posts = await executeQuery(query, params.length > 0 ? params : []);
+  const posts = await executeQuery(query, params);
 
-  // Transform the results to ensure consistent structure
+  // Transform the results
   return posts.map((post) => {
     const transformedPost = { ...post };
 
@@ -425,16 +459,11 @@ const getAllPublicTeacherPosts = async (userId) => {
     if (isStudent) {
       transformedPost.hasRequested =
         post.hasRequested === 1 || post.hasRequested === true;
-      // If no request exists, set defaults
-      if (!transformedPost.hasRequested) {
-        transformedPost.requestStatus = null;
-        transformedPost.requestId = null;
-        transformedPost.requestMessage = null;
-        transformedPost.requestDate = null;
-        transformedPost.purchaseDate = null;
-        transformedPost.paymentStatus = null;
-      }
     }
+
+    // Ensure numeric types for ratings
+    transformedPost.averageRating = parseFloat(post.averageRating) || 0;
+    transformedPost.reviewCount = parseInt(post.reviewCount) || 0;
 
     return transformedPost;
   });
@@ -451,9 +480,10 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
   const studentData = await executeQuery(studentQuery, [teacherEmail]);
   const hasStudents = studentData?.length > 0 && studentData[0].ispaid === 1;
   const query = `
-    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country ${hasStudents
-      ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country, s.profilePhoto"
-      : ""
+    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country ${
+      hasStudents
+        ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country, s.profilePhoto"
+        : ""
     }
     FROM StudentPosts sp
     JOIN Students s ON sp.studentId = s.id
@@ -476,11 +506,21 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
   const hasStudents = studentResult?.length > 0;
 
   const query = `
-    SELECT tp.*, t.name as teacherName, t.cityOrTown, t.country, t.email, t.about ${hasStudents
-      ? ", t.name, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
-      : ""
-    } FROM TeacherPosts tp
+    SELECT 
+      tp.*, t.name as teacherName, t.cityOrTown, t.country, t.email, t.about,
+      COALESCE(avg_rating.averageRating, 0) as averageRating,
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount
+      ${
+        hasStudents
+          ? ", t.name, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto"
+          : ""
+      } FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
+    LEFT JOIN (
+      SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
+      FROM TutorReviews
+      GROUP BY teacherId
+    ) avg_rating ON t.id = avg_rating.teacherId
     WHERE tp.id = ? AND tp.archived = 0
     ORDER BY tp.created DESC
   `;

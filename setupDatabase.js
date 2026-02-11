@@ -123,7 +123,7 @@ const setupDatabase = async () => {
 
       if (columns.length === 0) {
         logger.info(
-          "Adding subscription columns to findtutor_premium_teachers..."
+          "Adding subscription columns to findtutor_premium_teachers...",
         );
         await connection.query(`
           ALTER TABLE findtutor_premium_teachers
@@ -143,7 +143,7 @@ const setupDatabase = async () => {
     } catch (error) {
       logger.warn(
         "Error adding subscription columns (may already exist):",
-        error.message
+        error.message,
       );
     }
 
@@ -159,7 +159,7 @@ const setupDatabase = async () => {
 
       if (studentColumns.length === 0) {
         logger.info(
-          "Adding subscription columns to findtitor_premium_student..."
+          "Adding subscription columns to findtitor_premium_student...",
         );
         await connection.query(`
           ALTER TABLE findtitor_premium_student
@@ -175,13 +175,13 @@ const setupDatabase = async () => {
           ADD INDEX idx_subscription_status (subscriptionStatus)
         `);
         logger.info(
-          "Subscription columns added to student premium table successfully"
+          "Subscription columns added to student premium table successfully",
         );
       }
     } catch (error) {
       logger.warn(
         "Error adding subscription columns to student table (may already exist):",
-        error.message
+        error.message,
       );
     }
 
@@ -221,13 +221,13 @@ const setupDatabase = async () => {
     // Add missing columns if they don't exist (for existing tables)
     try {
       await connection.query(
-        `ALTER TABLE Teachers ADD COLUMN IF NOT EXISTS country VARCHAR(255)`
+        `ALTER TABLE Teachers ADD COLUMN IF NOT EXISTS country VARCHAR(255)`,
       );
       logger.info("Added country column to Teachers table");
     } catch (alterError) {
       logger.warn(
         "Country column may already exist or alter failed:",
-        alterError.message
+        alterError.message,
       );
     }
 
@@ -236,12 +236,12 @@ const setupDatabase = async () => {
       const [columns] = await connection.query(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Teachers' AND COLUMN_NAME = 'status'`,
-        [process.env.DB_NAME]
+        [process.env.DB_NAME],
       );
 
       if (columns.length === 0) {
         await connection.query(
-          `ALTER TABLE Teachers ADD COLUMN status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending'`
+          `ALTER TABLE Teachers ADD COLUMN status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending'`,
         );
         logger.info("Added status column to Teachers table");
       } else {
@@ -250,7 +250,7 @@ const setupDatabase = async () => {
     } catch (alterError) {
       logger.error(
         "Error adding status column to Teachers table:",
-        alterError.message
+        alterError.message,
       );
     }
 
@@ -259,7 +259,7 @@ const setupDatabase = async () => {
       const [aboutColumns] = await connection.query(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Teachers' AND COLUMN_NAME = 'about'`,
-        [process.env.DB_NAME]
+        [process.env.DB_NAME],
       );
 
       if (aboutColumns.length === 0) {
@@ -267,7 +267,7 @@ const setupDatabase = async () => {
           `ALTER TABLE Teachers 
            ADD COLUMN about TEXT NULL 
            COMMENT 'Teacher bio/description - cannot contain links, emails, or contact information' 
-           AFTER profilePhoto`
+           AFTER profilePhoto`,
         );
         logger.info("✓ Added 'about' column to Teachers table");
       } else {
@@ -276,7 +276,7 @@ const setupDatabase = async () => {
     } catch (aboutError) {
       logger.error(
         "Error adding 'otpVerified' column to Teachers table:",
-        aboutError.message
+        aboutError.message,
       );
     }
 
@@ -299,7 +299,7 @@ const setupDatabase = async () => {
       try {
         // Check if old table exists and drop it
         const [tables] = await connection.query(
-          `SHOW TABLES LIKE '${tableName}'`
+          `SHOW TABLES LIKE '${tableName}'`,
         );
         if (tables.length > 0) {
           await connection.query(`DROP TABLE IF EXISTS ${tableName}`);
@@ -308,7 +308,7 @@ const setupDatabase = async () => {
       } catch (dropError) {
         logger.warn(
           `Could not drop old table ${tableName}:`,
-          dropError.message
+          dropError.message,
         );
       }
     }
@@ -318,7 +318,7 @@ const setupDatabase = async () => {
       const [teacherPostsColumns] = await connection.query(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'TeacherPosts' AND COLUMN_NAME = 'archived'`,
-        [process.env.DB_NAME]
+        [process.env.DB_NAME],
       );
 
       if (teacherPostsColumns.length === 0) {
@@ -327,7 +327,7 @@ const setupDatabase = async () => {
            ADD COLUMN archived BOOLEAN DEFAULT FALSE 
            COMMENT 'Whether teacher post is archived' 
            AFTER priceType,
-           ADD INDEX idx_teacher_posts_archived (archived)`
+           ADD INDEX idx_teacher_posts_archived (archived)`,
         );
         logger.info("✓ Added 'archived' column to TeacherPosts table");
       } else {
@@ -336,7 +336,7 @@ const setupDatabase = async () => {
     } catch (archivedError) {
       logger.error(
         "Error adding 'archived' column to TeacherPosts table:",
-        archivedError.message
+        archivedError.message,
       );
     }
 
@@ -345,7 +345,7 @@ const setupDatabase = async () => {
       const [studentPostsColumns] = await connection.query(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'StudentPosts' AND COLUMN_NAME = 'archived'`,
-        [process.env.DB_NAME]
+        [process.env.DB_NAME],
       );
 
       if (studentPostsColumns.length === 0) {
@@ -354,7 +354,7 @@ const setupDatabase = async () => {
            ADD COLUMN archived BOOLEAN DEFAULT FALSE 
            COMMENT 'Whether student post is archived' 
            AFTER grade,
-           ADD INDEX idx_student_posts_archived (archived)`
+           ADD INDEX idx_student_posts_archived (archived)`,
         );
         logger.info("✓ Added 'archived' column to StudentPosts table");
       } else {
@@ -363,7 +363,7 @@ const setupDatabase = async () => {
     } catch (archivedError) {
       logger.error(
         "Error adding 'archived' column to StudentPosts table:",
-        archivedError.message
+        archivedError.message,
       );
     }
 
@@ -398,7 +398,7 @@ const setupDatabase = async () => {
         } catch (migrateError) {
           logger.warn(
             `Migration failed for ${table}.${column}:`,
-            migrateError.message
+            migrateError.message,
           );
           // This is okay if the table doesn't exist yet or column is already correct size
         }
@@ -454,19 +454,19 @@ const setupDatabase = async () => {
       const [studentColumns] = await connection.query(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Students' AND COLUMN_NAME = 'hasPremium'`,
-        [process.env.DB_NAME]
+        [process.env.DB_NAME],
       );
 
       if (studentColumns.length === 0) {
         await connection.query(
-          `ALTER TABLE Students ADD COLUMN hasPremium TINYINT(1) DEFAULT 0`
+          `ALTER TABLE Students ADD COLUMN hasPremium TINYINT(1) DEFAULT 0`,
         );
         logger.info("Added hasPremium column to Students table");
       }
     } catch (studentColumnError) {
       logger.error(
         "Error ensuring hasPremium column exists in Students table:",
-        studentColumnError.message
+        studentColumnError.message,
       );
     }
 
@@ -519,14 +519,14 @@ const setupDatabase = async () => {
       // Check if admin already exists
       const [existing] = await connection.query(
         "SELECT * FROM Admins WHERE email = ?",
-        [adminEmail]
+        [adminEmail],
       );
 
       if (existing.length === 0) {
         await connection.query(
           `INSERT INTO Admins (id, name, email, password, role) 
            VALUES (?, 'Super Administrator', ?, ?, 'admin')`,
-          [adminId, adminEmail, hashedPassword]
+          [adminId, adminEmail, hashedPassword],
         );
         logger.info("Default admin created:", adminEmail);
       } else {
@@ -645,6 +645,24 @@ const setupDatabase = async () => {
     `);
     logger.info("Table PostReviews created");
 
+    // Tutor Reviews Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS TutorReviews (
+        id VARCHAR(50) PRIMARY KEY,
+        teacherId VARCHAR(50) NOT NULL,
+        studentId VARCHAR(50) NOT NULL,
+        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        reviewText TEXT,
+        created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_student_teacher_review (studentId, teacherId),
+        INDEX idx_teacher_reviews (teacherId),
+        FOREIGN KEY (teacherId) REFERENCES Teachers(id) ON DELETE CASCADE,
+        FOREIGN KEY (studentId) REFERENCES Students(id) ON DELETE CASCADE
+      )
+    `);
+    logger.info("Table TutorReviews created");
+
     // Create the ID generation function
     try {
       // First, check if the function already exists
@@ -661,7 +679,7 @@ const setupDatabase = async () => {
         try {
           // Drop the function if it exists (in case of syntax issues)
           await connection.query(
-            `DROP FUNCTION IF EXISTS generate_pocketbase_id`
+            `DROP FUNCTION IF EXISTS generate_pocketbase_id`,
           );
 
           // Create the function without DELIMITER
@@ -687,10 +705,10 @@ const setupDatabase = async () => {
         } catch (createError) {
           if (createError.code === "ER_BINLOG_CREATE_ROUTINE_NEED_SUPER") {
             logger.warn(
-              "Cannot create MySQL function due to insufficient privileges (SUPER privilege required)"
+              "Cannot create MySQL function due to insufficient privileges (SUPER privilege required)",
             );
             logger.info(
-              "The application will use JavaScript fallback for ID generation"
+              "The application will use JavaScript fallback for ID generation",
             );
           } else {
             throw createError;
@@ -701,7 +719,7 @@ const setupDatabase = async () => {
       }
     } catch (funcError) {
       logger.warn(
-        "Function creation skipped (may already exist or insufficient privileges)"
+        "Function creation skipped (may already exist or insufficient privileges)",
       );
       logger.error("Function error details:", funcError);
     }
@@ -722,7 +740,7 @@ const setupDatabase = async () => {
         (id, subject, email, mobile, topix, descripton, ispayed)
         VALUES 
         (?, 'Mathematics', 'student@example.com', '+1234567890', 'Algebra, Calculus', 'Need help with advanced math topics', true)`,
-        [studentId]
+        [studentId],
       );
 
       // Sample teacher premium record
@@ -732,7 +750,7 @@ const setupDatabase = async () => {
         (id, link_or_video, link1, link2, link3, ispaid, mail)
         VALUES 
         (?, true, 'https://youtube.com/watch?v=example1', 'https://youtube.com/watch?v=example2', '', true, 'teacher@example.com')`,
-        [teacherId]
+        [teacherId],
       );
 
       // Sample subscription
@@ -742,7 +760,7 @@ const setupDatabase = async () => {
         (id, field)
         VALUES 
         (?, 'subscriber@example.com')`,
-        [subId]
+        [subId],
       );
 
       logger.info("Sample data inserted");

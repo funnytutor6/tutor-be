@@ -49,7 +49,8 @@ const updateTeacher = async (id, updateData) => {
     const trimmedAbout = about.trim();
 
     // Check for URLs/links
-    const urlPattern = /https?:\/\/|www\.|\.com|\.org|\.net|\.edu|\.gov|\.co\.|\.io|\.app|\.dev/i;
+    const urlPattern =
+      /https?:\/\/|www\.|\.com|\.org|\.net|\.edu|\.gov|\.co\.|\.io|\.app|\.dev/i;
     if (urlPattern.test(trimmedAbout)) {
       throw new Error("About section cannot contain links or URLs");
     }
@@ -61,13 +62,17 @@ const updateTeacher = async (id, updateData) => {
     }
 
     // Check for phone numbers (various formats)
-    const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\d{10,}|phone|mobile|call|whatsapp|telegram|contact\s*me|reach\s*me/i;
+    const phonePattern =
+      /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\d{10,}|phone|mobile|call|whatsapp|telegram|contact\s*me|reach\s*me/i;
     if (phonePattern.test(trimmedAbout)) {
-      throw new Error("About section cannot contain phone numbers or contact methods");
+      throw new Error(
+        "About section cannot contain phone numbers or contact methods",
+      );
     }
 
     // Check for social media handles
-    const socialPattern = /instagram|facebook|twitter|linkedin|snapchat|tiktok|youtube|@[a-zA-Z0-9_]+/i;
+    const socialPattern =
+      /instagram|facebook|twitter|linkedin|snapchat|tiktok|youtube|@[a-zA-Z0-9_]+/i;
     if (socialPattern.test(trimmedAbout)) {
       throw new Error("About section cannot contain social media information");
     }
@@ -177,12 +182,25 @@ const getAllTeachers = async () => {
 
 // get all public teachers
 const getAllPublicTeachers = async () => {
-  const query =
-    "SELECT id, name, email, phoneNumber, cityOrTown, country, profilePhoto, status, created, updated FROM Teachers WHERE status = 'approved'";
+  const query = `
+    SELECT 
+      t.id, t.name, t.email, t.phoneNumber, t.cityOrTown, t.country, t.profilePhoto, t.status, t.created, t.updated,
+      COALESCE(avg_rating.averageRating, 0) as averageRating,
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount
+    FROM Teachers t
+    LEFT JOIN (
+      SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
+      FROM TutorReviews
+      GROUP BY teacherId
+    ) avg_rating ON t.id = avg_rating.teacherId
+    WHERE t.status = 'approved'
+  `;
   const teachers = await executeQuery(query);
   return teachers.map((teacher) => ({
     ...teacher,
     status: teacher.status || "pending",
+    averageRating: parseFloat(teacher.averageRating) || 0,
+    reviewCount: parseInt(teacher.reviewCount) || 0,
   }));
 };
 
@@ -192,36 +210,48 @@ const getAllPublicTeachers = async () => {
  * @returns {Promise<Object>} - Teacher data
  */
 const getPublicTeacherById = async (id, userId) => {
-  const query = "SELECT * FROM Teachers WHERE id = ? AND status = 'approved'";
+  const query = `
+    SELECT 
+      t.*,
+      COALESCE(avg_rating.averageRating, 0) as averageRating,
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount
+    FROM Teachers t
+    LEFT JOIN (
+      SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
+      FROM TutorReviews
+      GROUP BY teacherId
+    ) avg_rating ON t.id = avg_rating.teacherId
+    WHERE t.id = ? AND t.status = 'approved'
+  `;
   const teachers = await executeQuery(query, [id]);
 
   if (teachers.length === 0) {
     throw new Error("Tutor not found");
   }
   const studentQuery = "SELECT * FROM Students WHERE id = ? AND hasPremium = 1";
-  const hasStudents = (await executeQuery(studentQuery, [userId])?.length) > 0;
+  const hasStudents = (await executeQuery(studentQuery, [userId]))?.length > 0;
   const teacher = teachers[0];
-  if (hasStudents) {
-    return {
-      id: teacher.id,
-      name: teacher.name,
-      email: teacher.email,
-      phoneNumber: teacher.phoneNumber,
-      cityOrTown: teacher.cityOrTown,
-      country: teacher.country,
-      profilePhoto: teacher.profilePhoto,
-    };
-  }
 
-  // Remove password from response
-  delete teacher.password;
-
-  return {
+  const baseData = {
     id: teacher.id,
     name: teacher.name,
     cityOrTown: teacher.cityOrTown,
     country: teacher.country,
+    averageRating: parseFloat(teacher.averageRating) || 0,
+    reviewCount: parseInt(teacher.reviewCount) || 0,
+    about: teacher.about,
+    profilePhoto: teacher.profilePhoto,
   };
+
+  if (hasStudents) {
+    return {
+      ...baseData,
+      email: teacher.email,
+      phoneNumber: teacher.phoneNumber,
+    };
+  }
+
+  return baseData;
 };
 
 /**
