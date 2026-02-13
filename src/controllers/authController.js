@@ -385,6 +385,7 @@ exports.resetPassword = async (req, res) => {
     await emailService.sendPasswordResetSuccessEmail({
       email: user.email,
       name: user.name,
+      userType,
     });
 
     logger.info(`Password reset successful for ${userType}: ${email}`);

@@ -203,7 +203,7 @@ const sendWelcomeEmail = async ({ email, name }) => {
  * @param {String} data.otpCode - OTP code
  * @returns {Promise<Boolean>} - True if sent successfully
  */
-const sendOTPEmail = async ({ email, name, otpCode }) => {
+const sendOTPEmail = async ({ email, name, otpCode, userType }) => {
   try {
     const template = await loadTemplate("otp-verification");
 
@@ -214,6 +214,7 @@ const sendOTPEmail = async ({ email, name, otpCode }) => {
       expiryMinutes: 10,
       supportEmail: SUPPORT_EMAIL,
       currentYear: new Date().getFullYear(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/${userType === "teacher" ? "teacher" : "student"}`,
     };
 
     const html = processTemplate(template, templateData);
@@ -385,7 +386,12 @@ const sendTeacherApprovalEmail = async ({ email, name }) => {
  * @param {String} data.otpCode - OTP code
  * @returns {Promise<Boolean>} - True if sent successfully
  */
-const sendPasswordResetOTPEmail = async ({ email, name, otpCode }) => {
+const sendPasswordResetOTPEmail = async ({
+  email,
+  name,
+  otpCode,
+  userType,
+}) => {
   try {
     const template = await loadTemplate("password-reset-otp");
 
@@ -395,6 +401,7 @@ const sendPasswordResetOTPEmail = async ({ email, name, otpCode }) => {
       otpCode,
       supportEmail: SUPPORT_EMAIL,
       currentYear: new Date().getFullYear(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/${userType === "teacher" ? "teacher" : "student"}`,
     };
 
     const html = processTemplate(template, templateData);
@@ -438,6 +445,7 @@ const sendTeacherRejectionEmail = async ({ email, name, rejectionReason }) => {
       rejectionReason: formattedReason,
       supportEmail: SUPPORT_EMAIL,
       currentYear: new Date().getFullYear(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
     };
 
     const html = processTemplate(template, templateData);
@@ -463,7 +471,7 @@ const sendTeacherRejectionEmail = async ({ email, name, rejectionReason }) => {
  * @param {String} data.name - Recipient name
  * @returns {Promise<Boolean>} - True if sent successfully
  */
-const sendPasswordResetSuccessEmail = async ({ email, name }) => {
+const sendPasswordResetSuccessEmail = async ({ email, name, userType }) => {
   try {
     const template = await loadTemplate("password-reset-success");
 
@@ -472,6 +480,7 @@ const sendPasswordResetSuccessEmail = async ({ email, name }) => {
       userName: name,
       supportEmail: SUPPORT_EMAIL,
       currentYear: new Date().getFullYear(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/${userType === "teacher" ? "teacher" : "student"}`,
     };
 
     const html = processTemplate(template, templateData);
@@ -532,6 +541,7 @@ const sendEmailChangeNotification = async ({
       changeDate: changeDate,
       supportEmail: SUPPORT_EMAIL,
       currentYear: new Date().getFullYear(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/${userType === "teacher" ? "teacher" : "student"}`,
     };
 
     const html = processTemplate(template, templateData);
@@ -1212,7 +1222,12 @@ const sendTeacherPremiumOneTimeSuccess = async ({
  * @param {String} data.otpCode - 6-digit OTP code
  * @returns {Promise<Boolean>} - True if sent successfully
  */
-const sendEmailVerificationEmail = async ({ email, name, otpCode }) => {
+const sendEmailVerificationEmail = async ({
+  email,
+  name,
+  otpCode,
+  userType,
+}) => {
   try {
     const template = await loadTemplate("email-verification");
 
@@ -1223,6 +1238,7 @@ const sendEmailVerificationEmail = async ({ email, name, otpCode }) => {
       expiryMinutes: 10,
       supportEmail: SUPPORT_EMAIL,
       currentYear: new Date().getFullYear(),
+      dashboardLink: `${FRONTEND_URL}/dashboard/${userType === "teacher" ? "teacher" : "student"}`,
     };
 
     const html = processTemplate(template, templateData);

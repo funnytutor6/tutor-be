@@ -46,6 +46,7 @@ const sendEmailVerification = async (userId, userType, email, name) => {
     email,
     name,
     otpCode: verificationCode,
+    userType,
   });
 
   logger.info(

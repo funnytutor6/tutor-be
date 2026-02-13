@@ -517,6 +517,7 @@ const sendPasswordResetOTP = async (userId, userType, email) => {
     email,
     name: userName,
     otpCode: otpRecord.otpCode,
+    userType,
   });
 
   console.log("otpRecord", otpRecord);
