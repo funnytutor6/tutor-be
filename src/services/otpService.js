@@ -32,10 +32,10 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
     // Check if WhatsApp API is configured
     if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
       logger.warn(
-        "WhatsApp API not configured. OTP will be logged instead of sent."
+        "WhatsApp API not configured. OTP will be logged instead of sent.",
       );
       logger.info(
-        `[WhatsApp OTP - DEV MODE] OTP for ${phoneNumber}: ${otpCode}`
+        `[WhatsApp OTP - DEV MODE] OTP for ${phoneNumber}: ${otpCode}`,
       );
       return true;
     }
@@ -47,7 +47,7 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
     // Validate phone number format (must start with +)
     if (!cleanPhoneNumber.startsWith("+")) {
       throw new Error(
-        "Phone number must include country code (e.g., +94771234567)"
+        "Phone number must include country code (e.g., +94771234567)",
       );
     }
 
@@ -95,7 +95,7 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
           Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     // Log success
@@ -120,13 +120,13 @@ const sendWhatsAppOTP = async (phoneNumber, otpCode) => {
       // Handle specific error cases
       if (error.response.status === 401) {
         throw new Error(
-          "WhatsApp API authentication failed. Please check access token."
+          "WhatsApp API authentication failed. Please check access token.",
         );
       } else if (error.response.status === 400) {
         const errorMessage = error.response.data?.error?.message || "";
         if (errorMessage.includes("phone number")) {
           throw new Error(
-            "Invalid phone number format. Please include country code."
+            "Invalid phone number format. Please include country code.",
           );
         }
         throw new Error(`WhatsApp API error: ${errorMessage}`);
@@ -231,23 +231,23 @@ const sendOTP = async (userId, userType, phoneNumber) => {
   ]);
 
   console.log("recent", recent);
-  if (recent.length > 0) {
-    const lastSent = new Date(recent[0].lastSentAt);
-    const now = new Date();
-    const secondsRemaining = Math.ceil(
-      OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
-    );
-    throw new Error(
-      `Please wait ${secondsRemaining} seconds before requesting a new OTP`
-    );
-  }
+  // if (recent.length > 0) {
+  //   const lastSent = new Date(recent[0].lastSentAt);
+  //   const now = new Date();
+  //   const secondsRemaining = Math.ceil(
+  //     OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000,
+  //   );
+  //   throw new Error(
+  //     `Please wait ${secondsRemaining} seconds before requesting a new OTP`,
+  //   );
+  // }
 
   // Create or update OTP
   const otpRecord = await createOrUpdateOTP(userId, userType, phoneNumber);
 
   console.log("otpRecord", otpRecord);
   // Send OTP via WhatsApp
-    await sendWhatsAppOTP(phoneNumber, otpRecord.otpCode);
+  await sendWhatsAppOTP(phoneNumber, otpRecord.otpCode);
 
   return {
     success: true,
@@ -289,14 +289,14 @@ const verifyOTP = async (userId, userType, phoneNumber, otpCode) => {
   // Check if max attempts exceeded
   if (otpRecord.attempts >= otpRecord.maxAttempts) {
     throw new Error(
-      "Maximum verification attempts exceeded. Please request a new OTP."
+      "Maximum verification attempts exceeded. Please request a new OTP.",
     );
   }
 
   // Increment attempts
   await executeQuery(
     `UPDATE OTPVerifications SET attempts = attempts + 1, updated = NOW() WHERE id = ?`,
-    [otpRecord.id]
+    [otpRecord.id],
   );
 
   // Verify OTP code
@@ -307,7 +307,7 @@ const verifyOTP = async (userId, userType, phoneNumber, otpCode) => {
   // Mark as verified
   await executeQuery(
     `UPDATE OTPVerifications SET isVerified = 1, updated = NOW() WHERE id = ?`,
-    [otpRecord.id]
+    [otpRecord.id],
   );
 
   logger.info(`OTP verified successfully for user ${userId} (${userType})`);
@@ -379,7 +379,7 @@ const getOTPStatus = async (userId, userType, phoneNumber) => {
       canResend = false;
       cooldownSeconds = Math.max(
         0,
-        OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLastSent
+        OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLastSent,
       );
     }
   }
@@ -486,22 +486,22 @@ const sendPasswordResetOTP = async (userId, userType, email) => {
     OTP_RESEND_COOLDOWN_SECONDS,
   ]);
 
-  if (recent.length > 0) {
-    const lastSent = new Date(recent[0].lastSentAt);
-    const now = new Date();
-    const secondsRemaining = Math.ceil(
-      OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
-    );
-    throw new Error(
-      `Please wait ${secondsRemaining} seconds before requesting a new OTP`
-    );
-  }
+  // if (recent.length > 0) {
+  //   const lastSent = new Date(recent[0].lastSentAt);
+  //   const now = new Date();
+  //   const secondsRemaining = Math.ceil(
+  //     OTP_RESEND_COOLDOWN_SECONDS - (now - lastSent) / 1000
+  //   );
+  //   throw new Error(
+  //     `Please wait ${secondsRemaining} seconds before requesting a new OTP`
+  //   );
+  // }
 
   // Create or update OTP
   const otpRecord = await createOrUpdatePasswordResetOTP(
     userId,
     userType,
-    email
+    email,
   );
 
   // Send OTP via email
@@ -562,14 +562,14 @@ const verifyPasswordResetOTP = async (userId, userType, email, otpCode) => {
   // Check if max attempts exceeded
   if (otpRecord.attempts >= otpRecord.maxAttempts) {
     throw new Error(
-      "Maximum verification attempts exceeded. Please request a new OTP."
+      "Maximum verification attempts exceeded. Please request a new OTP.",
     );
   }
 
   // Increment attempts
   await executeQuery(
     `UPDATE OTPVerifications SET attempts = attempts + 1, updated = NOW() WHERE id = ?`,
-    [otpRecord.id]
+    [otpRecord.id],
   );
 
   // Verify OTP code
@@ -580,11 +580,11 @@ const verifyPasswordResetOTP = async (userId, userType, email, otpCode) => {
   // Mark as verified
   await executeQuery(
     `UPDATE OTPVerifications SET isVerified = 1, updated = NOW() WHERE id = ?`,
-    [otpRecord.id]
+    [otpRecord.id],
   );
 
   logger.info(
-    `Password reset OTP verified successfully for user ${userId} (${userType})`
+    `Password reset OTP verified successfully for user ${userId} (${userType})`,
   );
   return true;
 };
@@ -637,7 +637,7 @@ const getPasswordResetOTPStatus = async (userId, userType, email) => {
       canResend = false;
       cooldownSeconds = Math.max(
         0,
-        OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLastSent
+        OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLastSent,
       );
     }
   }

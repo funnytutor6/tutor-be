@@ -20,26 +20,13 @@ exports.registerTeacher = async (req, res) => {
 
     const result = await authService.registerTeacher(req.body);
 
-    // Send OTP after registration
-    const otpService = require("../services/otpService");
-    try {
-      await otpService.sendOTP(
-        result.teacherId,
-        "teacher",
-        result.teacher.phoneNumber
-      );
-    } catch (otpError) {
-      logger.error("Error sending OTP during registration:", otpError);
-      // Continue even if OTP send fails - user can request it again
-    }
-
     return res.status(201).json({
       success: true,
       message:
-        "Tutor registered successfully. Please verify your phone number with OTP.",
+        "Tutor registered successfully. Please verify your email address.",
       teacherId: result.teacherId,
       teacher: result.teacher,
-      requiresOTPVerification: true,
+      requiresEmailVerification: true,
     });
   } catch (error) {
     logger.error("Error registering teacher:", error);
@@ -72,6 +59,19 @@ exports.loginTeacher = async (req, res) => {
   } catch (error) {
     logger.error("Error during Tutor login:", error);
     console.log("error", error?.message);
+
+    // If email verification is required, return user data for email verification
+    if (error.requiresEmailVerification) {
+      return res.status(401).json({
+        success: false,
+        error: error.message,
+        requiresEmailVerification: true,
+        userId: error.userId,
+        email: error.email,
+        userName: error.userName,
+        userType: error.userType,
+      });
+    }
 
     // If phone verification is required, return user data for OTP verification
     if (error.requiresOTPVerification) {
@@ -110,26 +110,13 @@ exports.registerStudent = async (req, res) => {
     const result = await authService.registerStudent(req.body);
     console.log("result", result);
 
-    // Send OTP after registration
-    const otpService = require("../services/otpService");
-    try {
-      await otpService.sendOTP(
-        result.studentId,
-        "student",
-        result.student.phoneNumber
-      );
-    } catch (otpError) {
-      logger.error("Error sending OTP during registration:", otpError);
-      // Continue even if OTP send fails - user can request it again
-    }
-
     return res.status(201).json({
       success: true,
       message:
-        "Student registered successfully. Please verify your phone number with OTP.",
+        "Student registered successfully. Please verify your email address.",
       studentId: result.studentId,
       student: result.student,
-      requiresOTPVerification: true,
+      requiresEmailVerification: true,
     });
   } catch (error) {
     logger.error("Error registering student:", error);
@@ -215,6 +202,19 @@ exports.loginStudent = async (req, res) => {
   } catch (error) {
     logger.error("Error during student login:", error);
 
+    // If email verification is required, return user data for email verification
+    if (error.requiresEmailVerification) {
+      return res.status(401).json({
+        success: false,
+        error: error.message,
+        requiresEmailVerification: true,
+        userId: error.userId,
+        email: error.email,
+        userName: error.userName,
+        userType: error.userType,
+      });
+    }
+
     // If phone verification is required, return user data for OTP verification
     if (error.requiresOTPVerification) {
       return res.status(401).json({
@@ -295,7 +295,7 @@ exports.forgotPassword = async (req, res) => {
       return successResponse(
         res,
         { message: "If the email exists, an OTP has been sent." },
-        200
+        200,
       );
     }
 
@@ -306,7 +306,7 @@ exports.forgotPassword = async (req, res) => {
     const result = await otpService.sendPasswordResetOTP(
       user.id,
       userType,
-      email
+      email,
     );
 
     return successResponse(res, result);
@@ -319,7 +319,7 @@ exports.forgotPassword = async (req, res) => {
     return successResponse(
       res,
       { message: "If the email exists, an OTP has been sent." },
-      200
+      200,
     );
   }
 };
@@ -336,7 +336,7 @@ exports.resetPassword = async (req, res) => {
       return errorResponse(
         res,
         "Email, userType, otpCode, and newPassword are required",
-        400
+        400,
       );
     }
 
@@ -348,7 +348,7 @@ exports.resetPassword = async (req, res) => {
       return errorResponse(
         res,
         "Password must be at least 6 characters long",
-        400
+        400,
       );
     }
 
@@ -403,5 +403,72 @@ exports.resetPassword = async (req, res) => {
       return errorResponse(res, error.message, 400);
     }
     return errorResponse(res, "Failed to reset password", 500);
+  }
+};
+
+/**
+ * Verify email address with OTP code
+ * POST /api/auth/verify-email
+ */
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { userId, userType, email, otpCode } = req.body;
+
+    if (!userId || !userType || !email || !otpCode) {
+      return errorResponse(
+        res,
+        "userId, userType, email, and otpCode are required",
+        400,
+      );
+    }
+
+    if (!["student", "teacher"].includes(userType)) {
+      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+    }
+
+    const result = await authService.verifyEmailToken(
+      userId,
+      userType,
+      email,
+      otpCode,
+    );
+
+    return successResponse(res, result);
+  } catch (error) {
+    logger.error("Error verifying email:", error);
+    return errorResponse(res, error.message, 400);
+  }
+};
+
+/**
+ * Resend email verification code
+ * POST /api/auth/resend-email-verification
+ */
+exports.resendEmailVerification = async (req, res) => {
+  try {
+    const { userId, userType, email } = req.body;
+
+    if (!userId || !userType || !email) {
+      return errorResponse(
+        res,
+        "userId, userType, and email are required",
+        400,
+      );
+    }
+
+    if (!["student", "teacher"].includes(userType)) {
+      return errorResponse(res, "userType must be 'student' or 'teacher'", 400);
+    }
+
+    const result = await authService.resendEmailVerification(
+      userId,
+      userType,
+      email,
+    );
+
+    return successResponse(res, result);
+  } catch (error) {
+    logger.error("Error resending email verification:", error);
+    return errorResponse(res, error.message, 400);
   }
 };

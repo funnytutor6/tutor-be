@@ -275,9 +275,75 @@ const setupDatabase = async () => {
       }
     } catch (aboutError) {
       logger.error(
-        "Error adding 'otpVerified' column to Teachers table:",
+        "Error adding 'about' column to Teachers table:",
         aboutError.message,
       );
+    }
+
+    // Add email verification columns to Teachers table
+    const emailVerificationColumns = [
+      {
+        name: "emailVerified",
+        definition:
+          "ADD COLUMN emailVerified TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Whether the email is verified' AFTER email",
+      },
+      {
+        name: "emailVerificationToken",
+        definition:
+          "ADD COLUMN emailVerificationToken VARCHAR(10) NULL COMMENT 'Email verification OTP code' AFTER emailVerified",
+      },
+      {
+        name: "emailVerificationExpiry",
+        definition:
+          "ADD COLUMN emailVerificationExpiry DATETIME NULL COMMENT 'Email verification token expiry time' AFTER emailVerificationToken",
+      },
+    ];
+
+    for (const col of emailVerificationColumns) {
+      try {
+        const [cols] = await connection.query(
+          `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Teachers' AND COLUMN_NAME = ?`,
+          [process.env.DB_NAME, col.name],
+        );
+        if (cols.length === 0) {
+          await connection.query(`ALTER TABLE Teachers ${col.definition}`);
+          logger.info(`✓ Added '${col.name}' column to Teachers table`);
+        } else {
+          logger.info(
+            `✓ '${col.name}' column already exists in Teachers table`,
+          );
+        }
+      } catch (colError) {
+        logger.error(
+          `Error adding '${col.name}' column to Teachers table:`,
+          colError.message,
+        );
+      }
+    }
+
+    // Add email verification columns to Students table
+    for (const col of emailVerificationColumns) {
+      try {
+        const [cols] = await connection.query(
+          `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+           WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'Students' AND COLUMN_NAME = ?`,
+          [process.env.DB_NAME, col.name],
+        );
+        if (cols.length === 0) {
+          await connection.query(`ALTER TABLE Students ${col.definition}`);
+          logger.info(`✓ Added '${col.name}' column to Students table`);
+        } else {
+          logger.info(
+            `✓ '${col.name}' column already exists in Students table`,
+          );
+        }
+      } catch (colError) {
+        logger.error(
+          `Error adding '${col.name}' column to Students table:`,
+          colError.message,
+        );
+      }
     }
 
     // Migrate existing tables to use longer VARCHAR for ID columns

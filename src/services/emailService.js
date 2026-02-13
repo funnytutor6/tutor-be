@@ -15,7 +15,8 @@ const EMAIL_CONFIG = {
 };
 
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
-const PLATFORM_NAME = process.env.PLATFORM_NAME || "Funny Study Learning Academy";
+const PLATFORM_NAME =
+  process.env.PLATFORM_NAME || "Funny Study Learning Academy";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
@@ -28,11 +29,10 @@ const createTransporter = () => {
   // Check if email is configured
   if (!EMAIL_CONFIG.auth.user || !EMAIL_CONFIG.auth.pass) {
     logger.warn(
-      "Email service not configured. Emails will be logged instead of sent."
+      "Email service not configured. Emails will be logged instead of sent.",
     );
     return null;
   }
-
 
   return nodemailer.createTransport(EMAIL_CONFIG);
 };
@@ -47,7 +47,7 @@ const loadTemplate = async (templateName) => {
     const templatePath = path.join(
       __dirname,
       "../templates/emails",
-      `${templateName}.html`
+      `${templateName}.html`,
     );
     const template = await fs.readFile(templatePath, "utf-8");
     return template;
@@ -324,19 +324,19 @@ const sendTeacherRegistrationNotificationToAdmin = async ({
         to: adminEmail,
         subject: `New Tutor Registration – ${PLATFORM_NAME}`,
         html,
-      })
+      }),
     );
 
     await Promise.all(emailPromises);
 
     logger.info(
-      `Teacher registration notification sent to ${adminEmails.length} admin(s)`
+      `Teacher registration notification sent to ${adminEmails.length} admin(s)`,
     );
     return true;
   } catch (error) {
     logger.error(
       "Error sending teacher registration notification to admin:",
-      error
+      error,
     );
     return false;
   }
@@ -406,7 +406,7 @@ const sendPasswordResetOTPEmail = async ({ email, name, otpCode }) => {
     });
 
     logger.info(
-      `Password reset OTP email sent to: ${email} otp code: ${otpCode}`
+      `Password reset OTP email sent to: ${email} otp code: ${otpCode}`,
     );
     return true;
   } catch (error) {
@@ -487,7 +487,7 @@ const sendPasswordResetSuccessEmail = async ({ email, name }) => {
   } catch (error) {
     logger.error(
       `Error sending password reset success email to ${email}:`,
-      error
+      error,
     );
     return false;
   }
@@ -502,7 +502,12 @@ const sendPasswordResetSuccessEmail = async ({ email, name }) => {
  * @param {String} data.userType - User type ('teacher' or 'student')
  * @returns {Promise<Boolean>} - True if sent successfully
  */
-const sendEmailChangeNotification = async ({ oldEmail, newEmail, name, userType }) => {
+const sendEmailChangeNotification = async ({
+  oldEmail,
+  newEmail,
+  name,
+  userType,
+}) => {
   try {
     const template = await loadTemplate("email-change-notification");
 
@@ -538,7 +543,10 @@ const sendEmailChangeNotification = async ({ oldEmail, newEmail, name, userType 
       html,
       cc: adminEmails.length > 0 ? adminEmails : undefined,
     }).catch((error) => {
-      logger.error(`Error sending email change notification to old email ${oldEmail}:`, error);
+      logger.error(
+        `Error sending email change notification to old email ${oldEmail}:`,
+        error,
+      );
       // Don't throw - continue to send to new email
     });
 
@@ -549,7 +557,10 @@ const sendEmailChangeNotification = async ({ oldEmail, newEmail, name, userType 
       html,
       cc: adminEmails.length > 0 ? adminEmails : undefined,
     }).catch((error) => {
-      logger.error(`Error sending email change notification to new email ${newEmail}:`, error);
+      logger.error(
+        `Error sending email change notification to new email ${newEmail}:`,
+        error,
+      );
       // Don't throw - at least we tried
     });
 
@@ -557,7 +568,7 @@ const sendEmailChangeNotification = async ({ oldEmail, newEmail, name, userType 
     await Promise.all([oldEmailPromise, newEmailPromise]);
 
     logger.info(
-      `Email change notification sent to old email: ${oldEmail} and new email: ${newEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Email change notification sent to old email: ${oldEmail} and new email: ${newEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
@@ -584,7 +595,7 @@ const sendConnectionRequestNotification = async ({
   teacherName,
   studentName,
   postHeadline,
-  postSubject
+  postSubject,
 }) => {
   try {
     const template = await loadTemplate("connection-request-notification");
@@ -620,11 +631,14 @@ const sendConnectionRequestNotification = async ({
     });
 
     logger.info(
-      `Connection request notification sent to teacher: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Connection request notification sent to teacher: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending connection request notification to ${teacherEmail}:`, error);
+    logger.error(
+      `Error sending connection request notification to ${teacherEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -691,11 +705,14 @@ const sendStudentSubscriptionPaymentSuccess = async ({
     });
 
     logger.info(
-      `Student subscription payment success email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Student subscription payment success email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending student subscription payment success email to ${studentEmail}:`, error);
+    logger.error(
+      `Error sending student subscription payment success email to ${studentEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -762,11 +779,14 @@ const sendTeacherSubscriptionPaymentSuccess = async ({
     });
 
     logger.info(
-      `Teacher subscription payment success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Teacher subscription payment success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending teacher subscription payment success email to ${teacherEmail}:`, error);
+    logger.error(
+      `Error sending teacher subscription payment success email to ${teacherEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -832,16 +852,17 @@ const sendTeacherConnectionPurchaseSuccess = async ({
     });
 
     logger.info(
-      `Teacher connection purchase success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Teacher connection purchase success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending teacher connection purchase success email to ${teacherEmail}:`, error);
+    logger.error(
+      `Error sending teacher connection purchase success email to ${teacherEmail}:`,
+      error,
+    );
     return false;
   }
 };
-
-
 
 /**
  * Send student subscription canceled email with admin CC
@@ -883,11 +904,14 @@ const sendStudentSubscriptionCanceled = async ({
     });
 
     logger.info(
-      `Student subscription canceled email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Student subscription canceled email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending student subscription canceled email to ${studentEmail}:`, error);
+    logger.error(
+      `Error sending student subscription canceled email to ${studentEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -932,11 +956,14 @@ const sendTeacherSubscriptionCanceled = async ({
     });
 
     logger.info(
-      `Teacher subscription canceled email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Teacher subscription canceled email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending teacher subscription canceled email to ${teacherEmail}:`, error);
+    logger.error(
+      `Error sending teacher subscription canceled email to ${teacherEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -992,11 +1019,14 @@ const sendStudentPaymentFailed = async ({
     });
 
     logger.info(
-      `Student payment failed email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Student payment failed email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending student payment failed email to ${studentEmail}:`, error);
+    logger.error(
+      `Error sending student payment failed email to ${studentEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -1052,11 +1082,14 @@ const sendTeacherPaymentFailed = async ({
     });
 
     logger.info(
-      `Teacher payment failed email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Teacher payment failed email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending teacher payment failed email to ${teacherEmail}:`, error);
+    logger.error(
+      `Error sending teacher payment failed email to ${teacherEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -1104,11 +1137,14 @@ const sendStudentPremiumOneTimeSuccess = async ({
     });
 
     logger.info(
-      `Student one-time premium success email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Student one-time premium success email sent to: ${studentEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending student one-time premium success email to ${studentEmail}:`, error);
+    logger.error(
+      `Error sending student one-time premium success email to ${studentEmail}:`,
+      error,
+    );
     return false;
   }
 };
@@ -1156,11 +1192,51 @@ const sendTeacherPremiumOneTimeSuccess = async ({
     });
 
     logger.info(
-      `Teacher one-time premium success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`
+      `Teacher one-time premium success email sent to: ${teacherEmail}${adminEmails.length > 0 ? ` (CC: ${adminEmails.join(", ")})` : ""}`,
     );
     return true;
   } catch (error) {
-    logger.error(`Error sending teacher one-time premium success email to ${teacherEmail}:`, error);
+    logger.error(
+      `Error sending teacher one-time premium success email to ${teacherEmail}:`,
+      error,
+    );
+    return false;
+  }
+};
+
+/**
+ * Send email verification OTP email
+ * @param {Object} data - Verification data
+ * @param {String} data.email - Recipient email
+ * @param {String} data.name - Recipient name
+ * @param {String} data.otpCode - 6-digit OTP code
+ * @returns {Promise<Boolean>} - True if sent successfully
+ */
+const sendEmailVerificationEmail = async ({ email, name, otpCode }) => {
+  try {
+    const template = await loadTemplate("email-verification");
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      userName: name,
+      otpCode,
+      expiryMinutes: 10,
+      supportEmail: SUPPORT_EMAIL,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    await sendEmail({
+      to: email,
+      subject: `Verify Your Email Address – ${PLATFORM_NAME}`,
+      html,
+    });
+
+    logger.info(`Email verification OTP sent to: ${email}`);
+    return true;
+  } catch (error) {
+    logger.error(`Error sending email verification to ${email}:`, error);
     return false;
   }
 };
@@ -1186,6 +1262,7 @@ module.exports = {
   sendTeacherPaymentFailed,
   sendStudentPremiumOneTimeSuccess,
   sendTeacherPremiumOneTimeSuccess,
+  sendEmailVerificationEmail,
   getAllAdminEmails,
   loadTemplate,
   processTemplate,

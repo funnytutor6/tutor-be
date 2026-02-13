@@ -12,32 +12,32 @@ const {
 router.post(
   "/teachers/register",
   validate(validateTeacherRegistration),
-  authController.registerTeacher
+  authController.registerTeacher,
 );
 router.post(
   "/teachers/complete-registration",
-  authController.completeTeacherRegistration
+  authController.completeTeacherRegistration,
 );
 router.post(
   "/teachers/login",
   validate(validateLogin),
-  authController.loginTeacher
+  authController.loginTeacher,
 );
 
 // Student authentication routes
 router.post(
   "/students/register",
   validate(validateStudentRegistration),
-  authController.registerStudent
+  authController.registerStudent,
 );
 router.post(
   "/students/complete-registration",
-  authController.completeStudentRegistration
+  authController.completeStudentRegistration,
 );
 router.post(
   "/students/login",
   validate(validateLogin),
-  authController.loginStudent
+  authController.loginStudent,
 );
 
 // Admin authentication routes
@@ -46,5 +46,12 @@ router.post("/admin/login", validate(validateLogin), authController.loginAdmin);
 // Password reset routes
 router.post("/auth/forgot-password", authController.forgotPassword);
 router.post("/auth/reset-password", authController.resetPassword);
+
+// Email verification routes
+router.post("/auth/verify-email", authController.verifyEmail);
+router.post(
+  "/auth/resend-email-verification",
+  authController.resendEmailVerification,
+);
 
 module.exports = router;

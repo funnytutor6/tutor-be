@@ -8,6 +8,51 @@ const {
   getTeacherPremiumStatus,
 } = require("./premiumService");
 
+const EMAIL_VERIFICATION_EXPIRY_MINUTES = 10;
+
+/**
+ * Generate a 6-digit email verification OTP code
+ * @returns {String} - 6-digit code
+ */
+const generateEmailVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+/**
+ * Store email verification token and send verification email
+ * @param {String} userId - User ID
+ * @param {String} userType - 'student' or 'teacher'
+ * @param {String} email - User email
+ * @param {String} name - User name
+ */
+const sendEmailVerification = async (userId, userType, email, name) => {
+  const verificationCode = generateEmailVerificationCode();
+  const expiresAt = new Date(
+    Date.now() + EMAIL_VERIFICATION_EXPIRY_MINUTES * 60 * 1000,
+  );
+
+  console.log("verificationCode", verificationCode);
+  console.log("expiresAt", expiresAt);
+
+  const table = userType === "teacher" ? "Teachers" : "Students";
+  await executeQuery(
+    `UPDATE ${table} SET emailVerificationToken = ?, emailVerificationExpiry = ?, updated = NOW() WHERE id = ?`,
+    [verificationCode, expiresAt, userId],
+  );
+
+  // Send verification email
+  const emailService = require("./emailService");
+  await emailService.sendEmailVerificationEmail({
+    email,
+    name,
+    otpCode: verificationCode,
+  });
+
+  logger.info(
+    `Email verification code sent to ${email} for ${userType} ${userId}`,
+  );
+};
+
 /**
  * Hash password using bcrypt
  * @param {String} password - Plain text password
@@ -70,7 +115,8 @@ const registerTeacher = async (teacherData) => {
   } = teacherData;
 
   // Check if teacher already exists
-  const checkQuery = "SELECT * FROM Teachers WHERE email = ? or phoneNumber = ?";
+  const checkQuery =
+    "SELECT * FROM Teachers WHERE email = ? or phoneNumber = ?";
   const existing = await executeQuery(checkQuery, [email, phoneNumber]);
 
   if (existing.length > 0) {
@@ -85,11 +131,12 @@ const registerTeacher = async (teacherData) => {
   // Create teacher record with pending status
   const createQuery = `
     INSERT INTO Teachers 
-    (id, name, email, password, phoneNumber, cityOrTown, country, profilePhoto, about, status, created, updated)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+    (id, name, email, password, phoneNumber, cityOrTown, country, profilePhoto, about, status, emailVerified, created, updated)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NOW(), NOW())
   `;
 
-  const defaultAbout = 'I am a passionate educator dedicated to helping students achieve their learning goals.';
+  const defaultAbout =
+    "I am a passionate educator dedicated to helping students achieve their learning goals.";
 
   await executeQuery(createQuery, [
     teacherId,
@@ -106,14 +153,16 @@ const registerTeacher = async (teacherData) => {
 
   logger.info("Teacher registered successfully:", teacherId);
 
-  // Send welcome email to teacher (don't wait for it, don't fail if it errors)
-  const emailService = require("./emailService");
-  emailService.sendTeacherWelcomeEmail({ email, name }).catch((error) => {
-    logger.error("Failed to send teacher welcome email:", error);
-    // Continue registration even if email fails
-  });
+  // Send email verification OTP
+  try {
+    await sendEmailVerification(teacherId, "teacher", email, name);
+  } catch (emailError) {
+    logger.error("Failed to send email verification:", emailError);
+    // Continue registration even if email fails - user can resend
+  }
 
   // Send notification to admin (don't wait for it, don't fail if it errors)
+  const emailService = require("./emailService");
   emailService
     .sendTeacherRegistrationNotificationToAdmin({
       name,
@@ -139,6 +188,7 @@ const registerTeacher = async (teacherData) => {
       profilePhoto: profilePhotoUrl || null,
       status: "pending",
     },
+    requiresEmailVerification: true,
   };
 };
 
@@ -163,12 +213,12 @@ const completeTeacherRegistration = async (teacherId) => {
   const isVerified = await otpService.isPhoneVerified(
     teacherId,
     "teacher",
-    teacher.phoneNumber
+    teacher.phoneNumber,
   );
 
   if (!isVerified) {
     throw new Error(
-      "Phone number must be verified before completing registration"
+      "Phone number must be verified before completing registration",
     );
   }
 
@@ -229,19 +279,32 @@ const loginTeacher = async (email, password) => {
     throw new Error("Your account is rejected. Please contact support.");
   }
 
+  // Check if email is verified
+  if (!teacher.emailVerified) {
+    const error = new Error(
+      "Please verify your email address before logging in. Check your inbox for the verification code.",
+    );
+    error.requiresEmailVerification = true;
+    error.userId = teacher.id;
+    error.email = teacher.email;
+    error.userName = teacher.name;
+    error.userType = "teacher";
+    throw error;
+  }
+
   // Check if phone number is verified (block login until OTP verified)
   if (teacher.phoneNumber) {
     const otpService = require("./otpService");
     const isPhoneVerified = await otpService.isPhoneVerified(
       teacher.id,
       "teacher",
-      teacher.phoneNumber
+      teacher.phoneNumber,
     );
 
     if (!isPhoneVerified) {
       // Throw error with user data for frontend to show OTP verification
       const error = new Error(
-        "Please verify your phone number with OTP before logging in. Check your WhatsApp for the verification code."
+        "Please verify your phone number with OTP before logging in. Check your WhatsApp for the verification code.",
       );
       error.requiresOTPVerification = true;
       error.userId = teacher.id;
@@ -317,11 +380,11 @@ const registerStudent = async (studentData) => {
   // Hash password
   const hashedPassword = await hashPassword(password);
 
-  // Create student record (phone verification will be done via OTP)
+  // Create student record (email verification will be done via OTP)
   const createQuery = `
     INSERT INTO Students 
-    (id, name, email, password, phoneNumber, cityOrTown, country, profilePhoto, created, updated)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    (id, name, email, password, phoneNumber, cityOrTown, country, profilePhoto, emailVerified, created, updated)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
   `;
 
   await executeQuery(createQuery, [
@@ -336,19 +399,19 @@ const registerStudent = async (studentData) => {
   ]);
 
   logger.info(
-    "Student registered successfully (pending OTP verification):",
-    studentId
+    "Student registered successfully (pending email verification):",
+    studentId,
   );
 
-  // Send welcome email (don't wait for it, don't fail if it errors)
-  const emailService = require("./emailService");
-  emailService.sendWelcomeEmail({ email, name }).catch((error) => {
-    logger.error("Failed to send welcome email:", error);
-    // Continue registration even if email fails
-  });
+  // Send email verification OTP
+  try {
+    await sendEmailVerification(studentId, "student", email, name);
+  } catch (emailError) {
+    logger.error("Failed to send email verification:", emailError);
+    // Continue registration even if email fails - user can resend
+  }
 
-  // Note: Token will be generated after OTP verification
-  // For now, return studentId so frontend can proceed to OTP verification
+  // Return studentId so frontend can proceed to email verification
   return {
     studentId,
     student: {
@@ -361,7 +424,7 @@ const registerStudent = async (studentData) => {
       profilePhoto: profilePhotoUrl || null,
       hasPremium: false,
     },
-    requiresOTPVerification: true,
+    requiresEmailVerification: true,
   };
 };
 
@@ -386,12 +449,12 @@ const completeStudentRegistration = async (studentId) => {
   const isVerified = await otpService.isPhoneVerified(
     studentId,
     "student",
-    student.phoneNumber
+    student.phoneNumber,
   );
 
   if (!isVerified) {
     throw new Error(
-      "Phone number must be verified before completing registration"
+      "Phone number must be verified before completing registration",
     );
   }
 
@@ -447,19 +510,32 @@ const loginStudent = async (email, password) => {
     throw new Error("Invalid email or password");
   }
 
+  // Check if email is verified
+  if (!student.emailVerified) {
+    const error = new Error(
+      "Please verify your email address before logging in. Check your inbox for the verification code.",
+    );
+    error.requiresEmailVerification = true;
+    error.userId = student.id;
+    error.email = student.email;
+    error.userName = student.name;
+    error.userType = "student";
+    throw error;
+  }
+
   // Check if phone number is verified (block login until OTP verified)
   if (student.phoneNumber) {
     const otpService = require("./otpService");
     const isPhoneVerified = await otpService.isPhoneVerified(
       student.id,
       "student",
-      student.phoneNumber
+      student.phoneNumber,
     );
 
     if (!isPhoneVerified) {
       // Throw error with user data for frontend to show OTP verification
       const error = new Error(
-        "Please verify your phone number with OTP before logging in. Check your WhatsApp for the verification code."
+        "Please verify your phone number with OTP before logging in. Check your WhatsApp for the verification code.",
       );
       error.requiresOTPVerification = true;
       error.userId = student.id;
@@ -548,6 +624,97 @@ const loginAdmin = async (email, password) => {
   };
 };
 
+/**
+ * Verify email address with OTP code
+ * @param {String} userId - User ID
+ * @param {String} userType - 'student' or 'teacher'
+ * @param {String} email - User email
+ * @param {String} otpCode - OTP code to verify
+ * @returns {Promise<Object>} - Verification result
+ */
+const verifyEmailToken = async (userId, userType, email, otpCode) => {
+  const table = userType === "teacher" ? "Teachers" : "Students";
+  const query = `SELECT * FROM ${table} WHERE id = ? AND email = ?`;
+  const users = await executeQuery(query, [userId, email]);
+
+  if (users.length === 0) {
+    throw new Error("User not found");
+  }
+
+  const user = users[0];
+
+  if (user.emailVerified) {
+    return { alreadyVerified: true, message: "Email is already verified" };
+  }
+
+  if (!user.emailVerificationToken) {
+    throw new Error("No verification code found. Please request a new one.");
+  }
+
+  if (new Date(user.emailVerificationExpiry) < new Date()) {
+    throw new Error("Verification code has expired. Please request a new one.");
+  }
+
+  if (user.emailVerificationToken !== otpCode) {
+    throw new Error("Invalid verification code. Please try again.");
+  }
+
+  // Mark email as verified and clear the token
+  await executeQuery(
+    `UPDATE ${table} SET emailVerified = 1, emailVerificationToken = NULL, emailVerificationExpiry = NULL, updated = NOW() WHERE id = ?`,
+    [userId],
+  );
+
+  logger.info(`Email verified successfully for ${userType} ${userId}`);
+
+  // Send welcome email after verification
+  const emailService = require("./emailService");
+  if (userType === "teacher") {
+    emailService
+      .sendTeacherWelcomeEmail({ email, name: user.name })
+      .catch((error) => {
+        logger.error("Failed to send teacher welcome email:", error);
+      });
+  } else {
+    emailService.sendWelcomeEmail({ email, name: user.name }).catch((error) => {
+      logger.error("Failed to send welcome email:", error);
+    });
+  }
+
+  return { verified: true, message: "Email verified successfully" };
+};
+
+/**
+ * Resend email verification code
+ * @param {String} userId - User ID
+ * @param {String} userType - 'student' or 'teacher'
+ * @param {String} email - User email
+ * @returns {Promise<Object>} - Result
+ */
+const resendEmailVerification = async (userId, userType, email) => {
+  const table = userType === "teacher" ? "Teachers" : "Students";
+  const query = `SELECT * FROM ${table} WHERE id = ? AND email = ?`;
+  const users = await executeQuery(query, [userId, email]);
+
+  if (users.length === 0) {
+    throw new Error("User not found");
+  }
+
+  const user = users[0];
+
+  if (user.emailVerified) {
+    return { alreadyVerified: true, message: "Email is already verified" };
+  }
+
+  await sendEmailVerification(userId, userType, email, user.name);
+
+  return {
+    success: true,
+    message: "Verification code sent successfully",
+    expiresInMinutes: EMAIL_VERIFICATION_EXPIRY_MINUTES,
+  };
+};
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -560,4 +727,6 @@ module.exports = {
   completeStudentRegistration,
   loginStudent,
   loginAdmin,
+  verifyEmailToken,
+  resendEmailVerification,
 };

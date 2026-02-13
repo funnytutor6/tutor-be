@@ -31,7 +31,7 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
         if (isActive && !record.cancelAtPeriodEnd) {
           nextPaymentDate = periodEnd;
           daysRemaining = Math.ceil(
-            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
           );
         }
       } else {
@@ -42,13 +42,13 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
       if (record.paymentDate) {
         const paymentDate = new Date(record.paymentDate);
         const thirtyDaysLater = new Date(
-          paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000
+          paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000,
         );
         isActive = thirtyDaysLater > now;
         if (isActive) {
           nextPaymentDate = thirtyDaysLater;
           daysRemaining = Math.ceil(
-            (thirtyDaysLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            (thirtyDaysLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
           );
         }
       } else {
@@ -57,7 +57,7 @@ const getTeacherPremiumStatus = async (teacherEmail) => {
     }
 
     const premiumStatus = {
-      hasPremium: true,
+      hasPremium: isActive,
       isPaid: isActive,
       premiumData: {
         id: record.id,
@@ -135,7 +135,7 @@ const createTeacherPremiumRecord = async (teacherEmail) => {
 
   const [newRecord] = await executeQuery(
     "SELECT * FROM findtutor_premium_teachers WHERE id = ?",
-    [id]
+    [id],
   );
 
   return {
@@ -182,7 +182,7 @@ const updateTeacherPremiumAfterPayment = async (premiumData) => {
 
       logger.info(
         "Teacher premium status updated for existing teacher (one-time payment):",
-        teacherEmail
+        teacherEmail,
       );
     }
   } else {
@@ -210,7 +210,7 @@ const updateTeacherPremiumAfterPayment = async (premiumData) => {
 
     logger.info(
       "Teacher premium record created for new teacher (one-time payment):",
-      teacherEmail
+      teacherEmail,
     );
   }
 };
@@ -237,7 +237,8 @@ const updateTeacherPremiumContent = async (teacherEmail, contentData) => {
 
   // Also check subscription status for active subscriptions
   const subscriptionService = require("./subscriptionService");
-  const subscriptionStatus = await subscriptionService.getSubscriptionStatus(teacherEmail);
+  const subscriptionStatus =
+    await subscriptionService.getSubscriptionStatus(teacherEmail);
 
   // Allow update if teacher has active premium (either legacy paid or active subscription)
   const hasActivePremium =
@@ -296,7 +297,7 @@ const updateTeacherPremiumContent = async (teacherEmail, contentData) => {
 
   const [updatedRecord] = await executeQuery(
     "SELECT * FROM findtutor_premium_teachers WHERE id = ?",
-    [premiumRecord.id]
+    [premiumRecord.id],
   );
 
   return updatedRecord;
@@ -328,7 +329,7 @@ const getStudentPremiumStatus = async (studentEmail) => {
         if (isActive && !record.cancelAtPeriodEnd) {
           nextPaymentDate = periodEnd;
           daysRemaining = Math.ceil(
-            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
           );
         }
       } else {
@@ -339,13 +340,13 @@ const getStudentPremiumStatus = async (studentEmail) => {
       if (record.paymentDate) {
         const paymentDate = new Date(record.paymentDate);
         const thirtyDaysLater = new Date(
-          paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000
+          paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000,
         );
         isActive = thirtyDaysLater > now;
         if (isActive) {
           nextPaymentDate = thirtyDaysLater;
           daysRemaining = Math.ceil(
-            (thirtyDaysLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            (thirtyDaysLater.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
           );
         }
       } else {
@@ -461,7 +462,7 @@ const updateStudentPremiumAfterPayment = async (premiumData) => {
 
       logger.info(
         "Student premium status updated for existing student (one-time payment):",
-        studentEmail
+        studentEmail,
       );
     }
   } else {
@@ -489,7 +490,7 @@ const updateStudentPremiumAfterPayment = async (premiumData) => {
 
     logger.info(
       "Student premium record created for new student (one-time payment):",
-      studentEmail
+      studentEmail,
     );
   }
 };
