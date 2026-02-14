@@ -24,6 +24,7 @@ router.get(
 );
 router.post(
   "/create-student-premium-checkout-session",
+  authenticate,
   premiumController.createStudentPremiumCheckout
 );
 

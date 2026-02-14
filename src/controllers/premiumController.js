@@ -117,20 +117,20 @@ exports.checkStudentPremiumStatus = async (req, res) => {
  */
 exports.createStudentPremiumCheckout = async (req, res) => {
   try {
-    const { studentData } = req.body;
-
-    if (!studentData || !studentData.email) {
-      return errorResponse(res, "Student data and email are required", 400);
-    }
+    const user = req?.user;
+    const studentData = {
+      email: user?.email,
+      name: user?.name,
+    };
 
     // Create or retrieve Stripe customer
     const stripeCustomerId =
       await subscriptionService.createOrRetrieveStudentCustomer(
         studentData.email,
         studentData.name || studentData.email,
-        studentData.descripton || "",
-        studentData.subject || "",
-        studentData.topix || ""
+        studentData?.descripton || "",
+        studentData?.subject || "",
+        studentData?.topix || ""
       );
 
     const session = await stripeService.createStudentPremiumSession({
