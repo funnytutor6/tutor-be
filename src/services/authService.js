@@ -521,30 +521,16 @@ const loginStudent = async (email, password) => {
     error.email = student.email;
     error.userName = student.name;
     error.userType = "student";
+    try {
+      await sendEmailVerification(student.id, "student", email, student.name);
+    } catch (emailError) {
+      logger.error("Failed to send email verification:", emailError);
+      // Continue registration even if email fails - user can resend
+    }
     throw error;
   }
 
-  // Check if phone number is verified (block login until OTP verified)
-  if (student.phoneNumber) {
-    const otpService = require("./otpService");
-    const isPhoneVerified = await otpService.isPhoneVerified(
-      student.id,
-      "student",
-      student.phoneNumber,
-    );
-
-    if (!isPhoneVerified) {
-      // Throw error with user data for frontend to show OTP verification
-      const error = new Error(
-        "Please verify your phone number with OTP before logging in. Check your WhatsApp for the verification code.",
-      );
-      error.requiresOTPVerification = true;
-      error.userId = student.id;
-      error.phoneNumber = student.phoneNumber;
-      error.userType = "student";
-      throw error;
-    }
-  }
+  // Students do NOT require WhatsApp phone verification
 
   // Get student premium status
   const premiumStatus = await getStudentPremiumStatus(student.email);
@@ -682,7 +668,44 @@ const verifyEmailToken = async (userId, userType, email, otpCode) => {
     });
   }
 
-  return { verified: true, message: "Email verified successfully" };
+  // For teachers: they still need WhatsApp OTP verification
+  if (userType === "teacher") {
+    return {
+      verified: true,
+      message: "Email verified successfully",
+      requiresOTPVerification: true,
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
+      userType: "teacher",
+      userName: user.name,
+    };
+  }
+
+  // For students: auto-login after email verification (no WhatsApp needed)
+  const premiumStatus = await getStudentPremiumStatus(user.email);
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    role: "student",
+  });
+
+  return {
+    verified: true,
+    message: "Email verified successfully",
+    token,
+    student: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      cityOrTown: user.cityOrTown,
+      country: user.country,
+      profilePhoto: user.profilePhoto,
+      created: user.created,
+      updated: user.updated,
+      hasPremium: premiumStatus?.hasPremium || false,
+    },
+  };
 };
 
 /**
