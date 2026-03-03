@@ -26,7 +26,10 @@ router.get("/students", adminController.getAllStudentsForAdmin);
 router.get("/students/premium", adminController.getAllPremiumStudentsForAdmin);
 
 // Admin: paginated teacher subscriptions with subscription details
-router.get("/teacher-subscriptions", adminController.getAllTeacherSubscriptionsForAdmin);
+router.get(
+  "/teacher-subscriptions",
+  adminController.getAllTeacherSubscriptionsForAdmin,
+);
 
 // Admin: paginated student posts
 router.get("/student-posts", adminController.getAllStudentPostsForAdmin);
@@ -47,7 +50,10 @@ router.get("/dashboard/metrics", adminController.getDashboardMetrics);
 router.get("/reports", adminController.getReportsData);
 
 // Admin: get all contact purchase transactions
-router.get("/contact-purchases", adminController.getAllContactPurchasesForAdmin);
+router.get(
+  "/contact-purchases",
+  adminController.getAllContactPurchasesForAdmin,
+);
 
 // Admin: get admin profile
 router.get("/profile", adminController.getAdminProfile);

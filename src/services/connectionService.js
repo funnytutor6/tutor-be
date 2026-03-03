@@ -56,26 +56,27 @@ const getConnectionRequestsForTeacher = async (teacherId, hasActiveSubscription 
   `;
   const requests = await executeQuery(query, [teacherId]);
   
+  const newlyRevealed = [];
+
   // If teacher has active subscription, auto-reveal contact for pending requests
   if (hasActiveSubscription) {
     for (const request of requests) {
       if (request.status === 'pending') {
-        // Auto-reveal contact by updating status to purchased (free subscription)
         try {
           await purchaseConnectionRequest(request.id, teacherId, null);
           request.status = 'purchased';
           request.contactRevealed = true;
           request.paymentStatus = 'free_subscription';
           request.purchaseDate = new Date();
+          newlyRevealed.push(request);
         } catch (error) {
           logger.warn(`Failed to auto-reveal contact for request ${request.id}:`, error);
-          // Continue even if update fails
         }
       }
     }
   }
   
-  return requests;
+  return { requests, newlyRevealed };
 };
 
 /**
@@ -88,7 +89,8 @@ const getConnectionRequestCount = async (teacherId) => {
     SELECT 
       COUNT(*) as totalRequests,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendingRequests,
-      SUM(CASE WHEN status = 'purchased' THEN 1 ELSE 0 END) as purchasedRequests
+      SUM(CASE WHEN status = 'purchased' THEN 1 ELSE 0 END) as purchasedRequests,
+      SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejectedRequests
     FROM ConnectionRequests 
     WHERE teacherId = ?
   `;
@@ -172,6 +174,51 @@ const purchaseConnectionRequest = async (
 };
 
 /**
+ * Reject connection request
+ * @param {String} requestId - Request ID
+ * @param {String} teacherId - Teacher ID
+ * @returns {Promise<Object>} - Rejected request with student details
+ */
+const rejectConnectionRequest = async (requestId, teacherId) => {
+  const checkQuery = `
+    SELECT cr.*, s.name as studentName, s.email as studentEmail, s.phoneNumber,
+           tp.headline as postHeadline, tp.subject as postSubject
+    FROM ConnectionRequests cr
+    JOIN Students s ON cr.studentId = s.id
+    JOIN TeacherPosts tp ON cr.postId = tp.id
+    WHERE cr.id = ? AND cr.teacherId = ?
+  `;
+  const existing = await executeQuery(checkQuery, [requestId, teacherId]);
+
+  if (existing.length === 0) {
+    throw new Error("Connection request not found");
+  }
+
+  if (existing[0].status === "rejected") {
+    return existing[0];
+  }
+
+  if (existing[0].status === "purchased") {
+    throw new Error("Cannot reject a purchased request");
+  }
+
+  const updateQuery = `
+    UPDATE ConnectionRequests 
+    SET status = 'rejected', updated = NOW()
+    WHERE id = ? AND teacherId = ? AND status = 'pending'
+  `;
+
+  const result = await executeQuery(updateQuery, [requestId, teacherId]);
+
+  if (result.affectedRows === 0) {
+    throw new Error("Connection request not found or already processed");
+  }
+
+  logger.info("Connection request rejected:", requestId);
+  return existing[0];
+};
+
+/**
  * Get request status for student
  * @param {String} postId - Post ID
  * @param {String} studentId - Student ID
@@ -235,6 +282,7 @@ module.exports = {
   getConnectionRequestCount,
   getConnectionRequestById,
   purchaseConnectionRequest,
+  rejectConnectionRequest,
   getRequestStatus,
   getConnectionRequestsForStudent,
 };

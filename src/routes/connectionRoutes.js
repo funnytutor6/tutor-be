@@ -35,6 +35,11 @@ router.post(
   "/connect/requests/:requestId/purchase",
   connectionController.purchaseConnectionRequest
 );
+router.post(
+  "/connect/requests/:requestId/reject",
+  authenticate,
+  connectionController.rejectConnectionRequest
+);
 router.get(
   "/posts/:postId/request-status/:studentId",
   connectionController.getRequestStatus

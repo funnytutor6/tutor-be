@@ -885,6 +885,24 @@ async function handleContactPurchase(session) {
     teacherId,
     session.id
   );
+
+  // Send acceptance email to student
+  try {
+    const request = await connectionService.getConnectionRequestById(requestId);
+    const { getTeacherById } = require("../services/teacherService");
+    const teacher = await getTeacherById(teacherId);
+    if (request && teacher) {
+      await emailService.sendConnectionRequestAccepted({
+        studentEmail: request.studentEmail,
+        studentName: request.studentName,
+        teacherName: teacher.name,
+        postHeadline: request.postHeadline,
+        postSubject: request.postSubject,
+      });
+    }
+  } catch (emailError) {
+    logger.error("Error sending acceptance email after contact purchase:", emailError);
+  }
 }
 
 /**

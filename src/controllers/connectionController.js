@@ -104,10 +104,32 @@ exports.getConnectionRequestsForTeacher = async (req, res) => {
       // Continue without subscription check
     }
 
-    const requests = await connectionService.getConnectionRequestsForTeacher(
+    const result = await connectionService.getConnectionRequestsForTeacher(
       teacherId,
       hasActiveSubscription
     );
+
+    const { requests, newlyRevealed } = result;
+
+    // Send acceptance emails for newly auto-revealed requests (don't block response)
+    if (newlyRevealed && newlyRevealed.length > 0) {
+      (async () => {
+        try {
+          const teacher = await getTeacherById(teacherId);
+          for (const request of newlyRevealed) {
+            await emailService.sendConnectionRequestAccepted({
+              studentEmail: request.studentEmail,
+              studentName: request.studentName,
+              teacherName: teacher?.name || "Your Tutor",
+              postHeadline: request.postHeadline,
+              postSubject: request.postSubject,
+            });
+          }
+        } catch (error) {
+          logger.error("Error sending auto-reveal acceptance emails:", error);
+        }
+      })();
+    }
 
     return successResponse(res, requests);
   } catch (error) {
@@ -178,6 +200,51 @@ exports.purchaseConnectionRequest = async (req, res) => {
       return errorResponse(res, error.message, 404);
     }
     return errorResponse(res, "Failed to purchase connection request", 500);
+  }
+};
+
+/**
+ * Reject connection request
+ */
+exports.rejectConnectionRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const teacherId = req?.user?.id;
+
+    if (!teacherId) {
+      return errorResponse(res, "Teacher ID is required", 400);
+    }
+
+    const rejectedRequest =
+      await connectionService.rejectConnectionRequest(requestId, teacherId);
+
+    // Send rejection email to student asynchronously
+    (async () => {
+      try {
+        const teacher = await getTeacherById(teacherId);
+        if (rejectedRequest && teacher) {
+          await emailService.sendConnectionRequestRejected({
+            studentEmail: rejectedRequest.studentEmail,
+            studentName: rejectedRequest.studentName,
+            teacherName: teacher.name,
+            postHeadline: rejectedRequest.postHeadline,
+            postSubject: rejectedRequest.postSubject,
+          });
+        }
+      } catch (error) {
+        logger.error("Error sending rejection email notification:", error);
+      }
+    })();
+
+    return successResponse(res, {
+      message: "Connection request rejected successfully",
+    });
+  } catch (error) {
+    logger.error("Error rejecting connection request:", error);
+    if (error.message.includes("not found") || error.message.includes("Cannot reject")) {
+      return errorResponse(res, error.message, 400);
+    }
+    return errorResponse(res, "Failed to reject connection request", 500);
   }
 };
 

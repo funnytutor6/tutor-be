@@ -604,8 +604,11 @@ const sendConnectionRequestNotification = async ({
   teacherEmail,
   teacherName,
   studentName,
+  studentEmail,
+  studentPhone,
   postHeadline,
   postSubject,
+  message,
 }) => {
   try {
     const template = await loadTemplate("connection-request-notification");
@@ -614,8 +617,13 @@ const sendConnectionRequestNotification = async ({
       platformName: PLATFORM_NAME,
       teacherName: teacherName,
       studentName: studentName,
+      studentEmail: studentEmail || "",
+      studentPhone: studentPhone || "",
       postHeadline: postHeadline,
       postSubject: postSubject,
+      studentMessageSection: message
+        ? `<div class="message-box"><p style="margin: 0 0 5px 0; font-weight: 600;">💬 Student's Message:</p><p style="margin: 0; font-style: italic;">"${message}"</p></div>`
+        : "",
       requestDate: new Date().toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -1257,6 +1265,107 @@ const sendEmailVerificationEmail = async ({
   }
 };
 
+/**
+ * Send email to student when their connection request is accepted (purchased)
+ */
+const sendConnectionRequestAccepted = async ({
+  studentEmail,
+  studentName,
+  teacherName,
+  postHeadline,
+  postSubject,
+}) => {
+  try {
+    const template = await loadTemplate("connection-request-accepted");
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      studentName: studentName,
+      teacherName: teacherName,
+      postHeadline: postHeadline,
+      postSubject: postSubject,
+      acceptedDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      dashboardLink: `${FRONTEND_URL}/dashboard/student`,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    const adminEmails = await getAllAdminEmails();
+
+    await sendEmail({
+      to: studentEmail,
+      subject: `Your Lesson Request Was Accepted – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Connection request accepted notification sent to student: ${studentEmail}`,
+    );
+    return true;
+  } catch (error) {
+    logger.error(
+      `Error sending connection request accepted notification to ${studentEmail}:`,
+      error,
+    );
+    return false;
+  }
+};
+
+/**
+ * Send email to student when their connection request is rejected
+ */
+const sendConnectionRequestRejected = async ({
+  studentEmail,
+  studentName,
+  teacherName,
+  postHeadline,
+  postSubject,
+}) => {
+  try {
+    const template = await loadTemplate("connection-request-rejected");
+
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      studentName: studentName,
+      teacherName: teacherName,
+      postHeadline: postHeadline,
+      postSubject: postSubject,
+      browseTeachersLink: `${FRONTEND_URL}/find-teachers`,
+      currentYear: new Date().getFullYear(),
+    };
+
+    const html = processTemplate(template, templateData);
+
+    const adminEmails = await getAllAdminEmails();
+
+    await sendEmail({
+      to: studentEmail,
+      subject: `Update on Your Lesson Request – ${PLATFORM_NAME}`,
+      html,
+      cc: adminEmails.length > 0 ? adminEmails : undefined,
+    });
+
+    logger.info(
+      `Connection request rejected notification sent to student: ${studentEmail}`,
+    );
+    return true;
+  } catch (error) {
+    logger.error(
+      `Error sending connection request rejected notification to ${studentEmail}:`,
+      error,
+    );
+    return false;
+  }
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -1269,6 +1378,8 @@ module.exports = {
   sendPasswordResetSuccessEmail,
   sendEmailChangeNotification,
   sendConnectionRequestNotification,
+  sendConnectionRequestAccepted,
+  sendConnectionRequestRejected,
   sendStudentSubscriptionPaymentSuccess,
   sendTeacherSubscriptionPaymentSuccess,
   sendTeacherConnectionPurchaseSuccess,

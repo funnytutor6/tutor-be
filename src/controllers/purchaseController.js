@@ -11,6 +11,7 @@ const logger = require("../utils/logger");
 const teacherService = require("../services/teacherService");
 const subscriptionService = require("../services/subscriptionService");
 const premiumService = require("../services/premiumService");
+const emailService = require("../services/emailService");
 
 /**
  * Get teacher purchases
@@ -272,6 +273,25 @@ exports.createContactPurchaseCheckout = async (req, res) => {
         userId,
         null
       );
+
+      // Send acceptance email to student asynchronously
+      (async () => {
+        try {
+          const request = await connectionService.getConnectionRequestById(requestId);
+          if (request) {
+            await emailService.sendConnectionRequestAccepted({
+              studentEmail: request.studentEmail,
+              studentName: request.studentName,
+              teacherName: teacher.name,
+              postHeadline: request.postHeadline,
+              postSubject: request.postSubject,
+            });
+          }
+        } catch (error) {
+          logger.error("Error sending acceptance email after premium reveal:", error);
+        }
+      })();
+
       return successResponse(res, {
         message: "Contact information revealed (Premium subscription)",
         freeAccess: true,

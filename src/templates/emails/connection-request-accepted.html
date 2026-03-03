@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Connection Request</title>
+    <title>Your Lesson Request Has Been Accepted</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -22,7 +22,7 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .email-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #ffffff;
             padding: 40px 30px;
             text-align: center;
@@ -36,7 +36,7 @@
             padding: 40px 30px;
         }
         .email-body h2 {
-            color: #667eea;
+            color: #10b981;
             font-size: 24px;
             margin-top: 0;
             margin-bottom: 20px;
@@ -45,20 +45,10 @@
             margin: 15px 0;
             color: #555555;
         }
-        .info-box {
-            background-color: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 20px;
-            margin: 25px 0;
-            border-radius: 4px;
-        }
-        .info-box p {
-            margin: 8px 0;
-            color: #1565c0;
-        }
         .request-details {
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            border-radius: 4px;
             padding: 20px;
             margin: 25px 0;
         }
@@ -73,28 +63,12 @@
             display: inline-block;
             padding: 14px 30px;
             margin: 25px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 6px;
             font-weight: 600;
             text-align: center;
-            transition: transform 0.2s;
-        }
-        .cta-button:hover {
-            transform: translateY(-2px);
-        }
-        .message-box {
-            background-color: #fff8e1;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 25px 0;
-            text-align: left;
-            border-radius: 4px;
-        }
-        .message-box p {
-            margin: 5px 0;
-            color: #856404;
         }
         .email-footer {
             background-color: #f8f9fa;
@@ -108,33 +82,26 @@
 <body>
     <div class="email-container">
         <div class="email-header">
-            <h1>📩 New Connection Request</h1>
+            <h1>✅ Lesson Request Accepted!</h1>
         </div>
         <div class="email-body">
-            <h2>Hello {{teacherName}},</h2>
-            <p>You have received a new connection request from a student interested in your teaching services.</p>
-            
-            <div class="info-box">
-                <p style="margin: 5px 0; font-weight: 600;">ℹ️ Connection Request Details</p>
-                <p style="margin: 5px 0;">A student wants to connect with you regarding your teaching post.</p>
-            </div>
+            <h2>Hello {{studentName}},</h2>
+            <p>Great news! Your lesson request has been accepted by <strong>{{teacherName}}</strong>.</p>
 
             <div class="request-details">
-                <p><span class="detail-label">Student Name:</span> {{studentName}}</p>
-                <p><span class="detail-label">Post Subject:</span> {{postSubject}}</p>
-                <p><span class="detail-label">Post Headline:</span> {{postHeadline}}</p>
-                <p><span class="detail-label">Request Date:</span> {{requestDate}}</p>
+                <p><span class="detail-label">Tutor:</span> {{teacherName}}</p>
+                <p><span class="detail-label">Subject:</span> {{postSubject}}</p>
+                <p><span class="detail-label">Post:</span> {{postHeadline}}</p>
+                <p><span class="detail-label">Accepted On:</span> {{acceptedDate}}</p>
             </div>
 
-            {{studentMessageSection}}
+            <p>The tutor is now ready to connect with you. You can view the details and next steps from your dashboard.</p>
 
             <div style="text-align: center">
                 <a href="{{dashboardLink}}" class="cta-button">
-                    View Request in Dashboard
+                    View in Dashboard
                 </a>
             </div>
-
-            <p>Please log in to your dashboard to review and respond to this lesson request. You can accept or reject the request from your dashboard.</p>
 
             <p style="margin-top: 30px;">
                 Best regards,<br>
@@ -142,7 +109,7 @@
             </p>
         </div>
         <div class="email-footer">
-            <p>© {{currentYear}} {{platformName}}. All rights reserved.</p>
+            <p>&copy; {{currentYear}} {{platformName}}. All rights reserved.</p>
             <p style="font-size: 12px; color: #999999; margin-top: 10px;">
                 This is an automated notification. Please do not reply to this email.
             </p>
@@ -150,4 +117,3 @@
     </div>
 </body>
 </html>
-
