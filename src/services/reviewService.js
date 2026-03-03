@@ -29,13 +29,23 @@ const createReview = async (reviewData) => {
  */
 const getReviewsByTeacherId = async (teacherId) => {
   const query = `
-    SELECT tr.*, s.name as studentName, s.profilePhoto as studentPhoto
-    FROM TutorReviews tr
-    LEFT JOIN Students s ON tr.studentId = s.id
-    WHERE tr.teacherId = ?
-    ORDER BY tr.created DESC
+    SELECT id, teacherId, rating, reviewText, created,
+      studentName, studentPhoto, reviewType
+    FROM (
+      SELECT tr.id, tr.teacherId, tr.rating, tr.reviewText, tr.created,
+        s.name as studentName, s.profilePhoto as studentPhoto, 'registered' as reviewType
+      FROM TutorReviews tr
+      LEFT JOIN Students s ON tr.studentId = s.id
+      WHERE tr.teacherId = ?
+      UNION ALL
+      SELECT ptr.id, ptr.teacherId, ptr.rating, ptr.reviewText, ptr.created,
+        ptr.reviewerName as studentName, NULL as studentPhoto, 'public' as reviewType
+      FROM PublicTutorReviews ptr
+      WHERE ptr.teacherId = ?
+    ) combined
+    ORDER BY created DESC
   `;
-  return await executeQuery(query, [teacherId]);
+  return await executeQuery(query, [teacherId, teacherId]);
 };
 
 /**
@@ -61,13 +71,16 @@ const getReviewsByStudentId = async (studentId) => {
  */
 const getTeacherReviewStats = async (teacherId) => {
   const query = `
-    SELECT 
+    SELECT
       AVG(rating) as averageRating,
       COUNT(*) as reviewCount
-    FROM TutorReviews
-    WHERE teacherId = ?
+    FROM (
+      SELECT rating FROM TutorReviews WHERE teacherId = ?
+      UNION ALL
+      SELECT rating FROM PublicTutorReviews WHERE teacherId = ?
+    ) combined
   `;
-  const results = await executeQuery(query, [teacherId]);
+  const results = await executeQuery(query, [teacherId, teacherId]);
   const stats = results[0] || { averageRating: 0, reviewCount: 0 };
 
   return {

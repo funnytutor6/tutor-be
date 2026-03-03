@@ -1,5 +1,8 @@
 const adminService = require("../services/adminService");
 const purchaseService = require("../services/purchaseService");
+const reviewAdminService = require("../services/reviewAdminService");
+const reviewRemovalService = require("../services/reviewRemovalService");
+const emailService = require("../services/emailService");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 const logger = require("../utils/logger");
 const {
@@ -406,6 +409,130 @@ exports.getAllContactPurchasesForAdmin = async (req, res) => {
   } catch (error) {
     logger.error("Error fetching contact purchases for admin:", error);
     return errorResponse(res, "Failed to fetch contact purchases", 500);
+  }
+};
+
+/**
+ * Get all reviews for admin
+ * GET /api/admin/reviews
+ */
+exports.getAllReviewsForAdmin = async (req, res) => {
+  try {
+    const validation = validatePaginationSearch(req.query);
+    if (!validation.valid) {
+      return errorResponse(res, validation.errors.join(", "), 400);
+    }
+    const { page, pageSize, search } = validation.value;
+
+    const result = await reviewAdminService.getAllReviewsForAdmin({
+      page,
+      pageSize,
+      search,
+    });
+    return successResponse(res, result);
+  } catch (error) {
+    logger.error("Error fetching reviews for admin:", error);
+    return errorResponse(res, "Failed to fetch reviews", 500);
+  }
+};
+
+/**
+ * Delete a review (admin only)
+ * DELETE /api/admin/reviews/:reviewId
+ * Body: { source: 'tutor_review' | 'public_review' }
+ */
+exports.deleteReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { source } = req.body;
+
+    if (!source || !["tutor_review", "public_review"].includes(source)) {
+      return errorResponse(res, "Invalid review source", 400);
+    }
+
+    await reviewAdminService.deleteReview(reviewId, source);
+    return successResponse(res, { message: "Review deleted successfully" });
+  } catch (error) {
+    logger.error("Error deleting review:", error);
+    return errorResponse(res, error.message || "Failed to delete review", 500);
+  }
+};
+
+/**
+ * Get review removal requests for admin
+ * GET /api/admin/review-removal-requests
+ */
+exports.getReviewRemovalRequests = async (req, res) => {
+  try {
+    const validation = validatePaginationSearch(req.query);
+    if (!validation.valid) {
+      return errorResponse(res, validation.errors.join(", "), 400);
+    }
+    const { page, pageSize, status } = validation.value;
+
+    const result = await reviewRemovalService.getRemovalRequestsForAdmin({
+      page,
+      pageSize,
+      status,
+    });
+    return successResponse(res, result);
+  } catch (error) {
+    logger.error("Error fetching review removal requests:", error);
+    return errorResponse(res, "Failed to fetch removal requests", 500);
+  }
+};
+
+/**
+ * Approve review removal request
+ * POST /api/admin/review-removal-requests/:requestId/approve
+ */
+exports.approveRemovalRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const result = await reviewRemovalService.approveRemovalRequest(requestId);
+    if (result.teacherEmail) {
+      emailService.sendReviewRemovalApproved({
+        teacherEmail: result.teacherEmail,
+        teacherName: result.teacherName,
+      }).catch((err) => logger.error("Failed to send approval email:", err));
+    }
+    return successResponse(res, {
+      message: "Removal request approved. Review has been deleted.",
+      ...result,
+    });
+  } catch (error) {
+    logger.error("Error approving removal request:", error);
+    return errorResponse(res, error.message || "Failed to approve request", 400);
+  }
+};
+
+/**
+ * Reject review removal request
+ * POST /api/admin/review-removal-requests/:requestId/reject
+ * Body: { adminNotes?: string }
+ */
+exports.rejectRemovalRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { adminNotes } = req.body || {};
+    const result = await reviewRemovalService.rejectRemovalRequest(
+      requestId,
+      adminNotes
+    );
+    if (result.teacherEmail) {
+      emailService.sendReviewRemovalRejected({
+        teacherEmail: result.teacherEmail,
+        teacherName: result.teacherName,
+        adminNotes: result.adminNotes,
+      }).catch((err) => logger.error("Failed to send rejection email:", err));
+    }
+    return successResponse(res, {
+      message: "Removal request rejected",
+      ...result,
+    });
+  } catch (error) {
+    logger.error("Error rejecting removal request:", error);
+    return errorResponse(res, error.message || "Failed to reject request", 400);
   }
 };
 

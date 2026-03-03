@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Removal Request Approved</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .email-container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .email-header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; padding: 40px 30px; text-align: center; }
+        .email-header h1 { margin: 0; font-size: 24px; }
+        .email-body { padding: 40px 30px; }
+        .email-body p { margin: 15px 0; color: #555; }
+        .detail-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .cta-button { display: inline-block; padding: 14px 30px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff !important; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .email-footer { background: #f8f9fa; padding: 30px; text-align: center; color: #777; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header"><h1>✓ Review Removal Approved</h1></div>
+        <div class="email-body">
+            <p>Hello <strong>{{teacherName}}</strong>,</p>
+            <p>Your request to remove a review has been approved by our admin team. The review has been removed from your profile.</p>
+            <div class="detail-box">
+                <p><strong>Action:</strong> Review removed successfully</p>
+                <p><strong>Date:</strong> {{decisionDate}}</p>
+            </div>
+            <div style="text-align: center">
+                <a href="{{dashboardLink}}" class="cta-button">View Your Dashboard</a>
+            </div>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The {{platformName}} Team</strong></p>
+        </div>
+        <div class="email-footer"><p>&copy; {{currentYear}} {{platformName}}. All rights reserved.</p></div>
+    </div>
+</body>
+</html>

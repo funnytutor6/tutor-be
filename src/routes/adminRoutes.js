@@ -55,6 +55,15 @@ router.get(
   adminController.getAllContactPurchasesForAdmin,
 );
 
+// Admin: reviews management
+router.get("/reviews", adminController.getAllReviewsForAdmin);
+router.delete("/reviews/:reviewId", adminController.deleteReview);
+
+// Admin: review removal requests
+router.get("/review-removal-requests", adminController.getReviewRemovalRequests);
+router.post("/review-removal-requests/:requestId/approve", adminController.approveRemovalRequest);
+router.post("/review-removal-requests/:requestId/reject", adminController.rejectRemovalRequest);
+
 // Admin: get admin profile
 router.get("/profile", adminController.getAdminProfile);
 

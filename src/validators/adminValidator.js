@@ -32,6 +32,9 @@ const paginationSearchSchema = z.object({
     .max(100)
     .optional()
     .transform((v) => (v === "" ? undefined : v)),
+  status: z
+    .enum(["pending", "approved", "rejected"])
+    .optional(),
 });
 
 /**

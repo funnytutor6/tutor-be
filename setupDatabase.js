@@ -729,6 +729,63 @@ const setupDatabase = async () => {
     `);
     logger.info("Table TutorReviews created");
 
+    // Review Tokens Table (for public review links)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ReviewTokens (
+        id VARCHAR(50) PRIMARY KEY,
+        teacherId VARCHAR(50) NOT NULL,
+        token VARCHAR(64) NOT NULL UNIQUE,
+        isActive BOOLEAN DEFAULT TRUE,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expiresAt TIMESTAMP NULL,
+        INDEX idx_review_token (token),
+        INDEX idx_review_token_teacher (teacherId),
+        FOREIGN KEY (teacherId) REFERENCES Teachers(id) ON DELETE CASCADE
+      )
+    `);
+    logger.info("Table ReviewTokens created");
+
+    // Public Tutor Reviews Table (no login required)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS PublicTutorReviews (
+        id VARCHAR(50) PRIMARY KEY,
+        teacherId VARCHAR(50) NOT NULL,
+        tokenId VARCHAR(50) NOT NULL,
+        reviewerName VARCHAR(255) NOT NULL,
+        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        reviewText TEXT,
+        created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_public_review_teacher (teacherId),
+        INDEX idx_public_review_token (tokenId),
+        FOREIGN KEY (teacherId) REFERENCES Teachers(id) ON DELETE CASCADE,
+        FOREIGN KEY (tokenId) REFERENCES ReviewTokens(id) ON DELETE CASCADE
+      )
+    `);
+    logger.info("Table PublicTutorReviews created");
+
+    // Review Removal Requests Table (tutor requests to remove a review)
+    await connection.query(`
+      DROP TABLE IF EXISTS ReviewRemovalRequests
+    `);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ReviewRemovalRequests (
+        id VARCHAR(50) PRIMARY KEY,
+        reviewId VARCHAR(50) NOT NULL,
+        review_source ENUM('tutor_review', 'public_review') NOT NULL,
+        teacherId VARCHAR(50) NOT NULL,
+        reason TEXT NOT NULL,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        adminNotes TEXT,
+        created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_removal_teacher (teacherId),
+        INDEX idx_removal_status (status),
+        INDEX idx_removal_review (reviewId, review_source),
+        FOREIGN KEY (teacherId) REFERENCES Teachers(id) ON DELETE CASCADE
+      )
+    `);
+    logger.info("Table ReviewRemovalRequests created");
+
     // Create the ID generation function
     try {
       // First, check if the function already exists

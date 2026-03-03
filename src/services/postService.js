@@ -135,7 +135,11 @@ const getAllTeacherPosts = async (teacherId) => {
     JOIN Teachers t ON tp.teacherId = t.id
     LEFT JOIN (
       SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
-      FROM TutorReviews
+      FROM (
+        SELECT teacherId, rating FROM TutorReviews
+        UNION ALL
+        SELECT teacherId, rating FROM PublicTutorReviews
+      ) combined_reviews
       GROUP BY teacherId
     ) avg_rating ON t.id = avg_rating.teacherId
     WHERE tp.teacherId = ?
@@ -165,7 +169,11 @@ const getTeacherPostsByTeacherId = async (teacherId) => {
     JOIN Teachers t ON tp.teacherId = t.id
     LEFT JOIN (
       SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
-      FROM TutorReviews
+      FROM (
+        SELECT teacherId, rating FROM TutorReviews
+        UNION ALL
+        SELECT teacherId, rating FROM PublicTutorReviews
+      ) combined_reviews
       GROUP BY teacherId
     ) avg_rating ON t.id = avg_rating.teacherId
     WHERE tp.teacherId = ?
@@ -424,7 +432,11 @@ const getAllPublicTeacherPosts = async (userId) => {
     JOIN Teachers t ON tp.teacherId = t.id
     LEFT JOIN (
       SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
-      FROM TutorReviews
+      FROM (
+        SELECT teacherId, rating FROM TutorReviews
+        UNION ALL
+        SELECT teacherId, rating FROM PublicTutorReviews
+      ) combined_reviews
       GROUP BY teacherId
     ) avg_rating ON t.id = avg_rating.teacherId`;
 
@@ -468,7 +480,8 @@ const getAllPublicTeacherPosts = async (userId) => {
     // Ensure numeric types for ratings
     transformedPost.averageRating = parseFloat(post.averageRating) || 0;
     transformedPost.reviewCount = parseInt(post.reviewCount) || 0;
-    transformedPost.teacherIsPremium = post.teacherIsPremium === 1 || post.teacherIsPremium === true;
+    transformedPost.teacherIsPremium =
+      post.teacherIsPremium === 1 || post.teacherIsPremium === true;
 
     return transformedPost;
   });
@@ -524,7 +537,11 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
     JOIN Teachers t ON tp.teacherId = t.id
     LEFT JOIN (
       SELECT teacherId, AVG(rating) as averageRating, COUNT(*) as reviewCount
-      FROM TutorReviews
+      FROM (
+        SELECT teacherId, rating FROM TutorReviews
+        UNION ALL
+        SELECT teacherId, rating FROM PublicTutorReviews
+      ) combined_reviews
       GROUP BY teacherId
     ) avg_rating ON t.id = avg_rating.teacherId
     WHERE tp.id = ? AND tp.archived = 0

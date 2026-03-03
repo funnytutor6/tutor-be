@@ -1366,6 +1366,81 @@ const sendConnectionRequestRejected = async ({
   }
 };
 
+/**
+ * Send email to tutor when their review removal request is approved
+ */
+const sendReviewRemovalApproved = async ({
+  teacherEmail,
+  teacherName,
+}) => {
+  try {
+    const template = await loadTemplate("review-removal-approved");
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Tutor",
+      decisionDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      currentYear: new Date().getFullYear(),
+    };
+    const html = processTemplate(template, templateData);
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Review Removal Approved – ${PLATFORM_NAME}`,
+      html,
+    });
+    return true;
+  } catch (error) {
+    logger.error("Error sending review removal approved email:", error);
+    return false;
+  }
+};
+
+/**
+ * Send email to tutor when their review removal request is rejected
+ */
+const sendReviewRemovalRejected = async ({
+  teacherEmail,
+  teacherName,
+  adminNotes,
+}) => {
+  try {
+    const template = await loadTemplate("review-removal-rejected");
+    const adminNotesSection = adminNotes
+      ? `<div class="admin-notes"><p><strong>Admin note:</strong> ${adminNotes}</p></div>`
+      : "";
+    const templateData = {
+      platformName: PLATFORM_NAME,
+      teacherName: teacherName || "Tutor",
+      decisionDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      adminNotesSection,
+      dashboardLink: `${FRONTEND_URL}/dashboard/teacher`,
+      currentYear: new Date().getFullYear(),
+    };
+    const html = processTemplate(template, templateData);
+    await sendEmail({
+      to: teacherEmail,
+      subject: `Review Removal Request Update – ${PLATFORM_NAME}`,
+      html,
+    });
+    return true;
+  } catch (error) {
+    logger.error("Error sending review removal rejected email:", error);
+    return false;
+  }
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -1380,6 +1455,8 @@ module.exports = {
   sendConnectionRequestNotification,
   sendConnectionRequestAccepted,
   sendConnectionRequestRejected,
+  sendReviewRemovalApproved,
+  sendReviewRemovalRejected,
   sendStudentSubscriptionPaymentSuccess,
   sendTeacherSubscriptionPaymentSuccess,
   sendTeacherConnectionPurchaseSuccess,

@@ -15,6 +15,7 @@ const adminRoutes = require("./adminRoutes");
 const otpRoutes = require("./otpRoutes");
 const subscriptionRoutes = require("./subscriptionRoutes");
 const reviewRoutes = require("./reviewRoutes");
+const reviewTokenRoutes = require("./reviewTokenRoutes");
 
 // Import existing premium route modules (for backward compatibility)
 const studentPremiumRoutes = require("../../studentPremium");
@@ -24,7 +25,8 @@ const subscriptionsRoutes = require("../../subscriptions");
 // Mount routes
 router.use("/api", connectionRoutes);
 router.use("/api", authRoutes);
-router.use("/api/reviews", reviewRoutes); // Mounted reviewRoutes
+router.use("/api/reviews", reviewRoutes);
+router.use("/api/reviews", reviewTokenRoutes);
 router.use("/api/students", studentRoutes);
 router.use("/api/teachers", teacherRoutes);
 router.use("/api/posts", postRoutes);

@@ -1,4 +1,5 @@
 const reviewService = require("../services/reviewService");
+const reviewRemovalService = require("../services/reviewRemovalService");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 const logger = require("../utils/logger");
 
@@ -85,5 +86,51 @@ exports.getStudentReviews = async (req, res) => {
   } catch (error) {
     logger.error("Error fetching student reviews:", error);
     return errorResponse(res, "Failed to fetch your reviews", 500);
+  }
+};
+
+/**
+ * Request review removal (teacher only)
+ * POST /api/reviews/removal-request
+ * Body: { reviewId, reviewSource, reason }
+ */
+exports.requestReviewRemoval = async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId || req.user.id;
+    const { reviewId, reviewSource, reason } = req.body;
+
+    if (!reviewId || !reviewSource || !reason?.trim()) {
+      return errorResponse(res, "Review ID, source, and reason are required", 400);
+    }
+
+    const id = await reviewRemovalService.requestReviewRemoval({
+      teacherId,
+      reviewId,
+      reviewSource,
+      reason: reason.trim(),
+    });
+
+    return successResponse(res, {
+      message: "Removal request submitted. Admin will review shortly.",
+      requestId: id,
+    }, 201);
+  } catch (error) {
+    logger.error("Error requesting review removal:", error);
+    return errorResponse(res, error.message || "Failed to submit removal request", 400);
+  }
+};
+
+/**
+ * Get teacher's removal requests
+ * GET /api/reviews/removal-requests
+ */
+exports.getMyRemovalRequests = async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId || req.user.id;
+    const requests = await reviewRemovalService.getTeacherRemovalRequests(teacherId);
+    return successResponse(res, requests);
+  } catch (error) {
+    logger.error("Error fetching removal requests:", error);
+    return errorResponse(res, "Failed to fetch removal requests", 500);
   }
 };

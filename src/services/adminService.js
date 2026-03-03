@@ -345,6 +345,8 @@ const getDashboardMetrics = async () => {
     totalStudentSubscriptionsResult,
     newsletterSubscribersResult,
     contactPurchasesResult,
+    allReviewsResult,
+    pendingRemovalRequestsResult,
   ] = await Promise.all([
     executeQuery(
       "SELECT COUNT(*) as count FROM Teachers t WHERE EXISTS (SELECT 1 FROM OTPVerifications o WHERE o.userId = t.id AND o.userType = 'teacher' AND o.isVerified = 1)"
@@ -367,6 +369,12 @@ const getDashboardMetrics = async () => {
     executeQuery(
       "SELECT COUNT(*) as count FROM TeacherPurchases WHERE paymentStatus = 'paid'"
     ),
+    executeQuery(
+      "SELECT (SELECT COUNT(*) FROM TutorReviews) + (SELECT COUNT(*) FROM PublicTutorReviews) as count"
+    ),
+    executeQuery(
+      "SELECT COUNT(*) as count FROM ReviewRemovalRequests WHERE status = 'pending'"
+    ),
   ]);
 
   return {
@@ -381,6 +389,8 @@ const getDashboardMetrics = async () => {
     totalStudentSubscriptions: totalStudentSubscriptionsResult[0]?.count || 0,
     newsletterSubscribers: newsletterSubscribersResult[0]?.count || 0,
     contactPurchases: contactPurchasesResult[0]?.count || 0,
+    allReviews: allReviewsResult[0]?.count || 0,
+    pendingRemovalRequests: pendingRemovalRequestsResult[0]?.count || 0,
   };
 };
 
