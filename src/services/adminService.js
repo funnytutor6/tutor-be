@@ -41,7 +41,11 @@ const getAllTeachers = async ({ page, pageSize, search }) => {
       t.status,
       t.created,
       t.updated,
-      (SELECT COUNT(*) FROM TeacherPosts tp WHERE tp.teacherId = t.id) AS postCount
+      (SELECT COUNT(*) FROM TeacherPosts tp WHERE tp.teacherId = t.id) AS postCount,
+      (SELECT CASE WHEN sub_fpt.ispaid = 1 AND (
+        sub_fpt.subscriptionStatus = 'active' OR 
+        (sub_fpt.stripeSubscriptionId IS NULL AND sub_fpt.paymentDate > DATE_SUB(NOW(), INTERVAL 30 DAY))
+      ) THEN 1 ELSE 0 END FROM findtutor_premium_teachers sub_fpt WHERE sub_fpt.mail = t.email LIMIT 1) as isPremium
     FROM Teachers t
     ${whereClause}
     ORDER BY t.created DESC
@@ -57,6 +61,7 @@ const getAllTeachers = async ({ page, pageSize, search }) => {
       ...teacher,
       status: teacher.status || "pending",
       postCount: Number(teacher.postCount) || 0,
+      isPremium: teacher.isPremium === 1 || teacher.isPremium === true,
     })),
     total,
     page,

@@ -388,7 +388,11 @@ const getAllPublicTeacherPosts = async (userId) => {
       t.cityOrTown, 
       t.country,
       COALESCE(avg_rating.averageRating, 0) as averageRating,
-      COALESCE(avg_rating.reviewCount, 0) as reviewCount`;
+      COALESCE(avg_rating.reviewCount, 0) as reviewCount,
+      (SELECT CASE WHEN sub_fpt.ispaid = 1 AND (
+        sub_fpt.subscriptionStatus = 'active' OR 
+        (sub_fpt.stripeSubscriptionId IS NULL AND sub_fpt.paymentDate > DATE_SUB(NOW(), INTERVAL 30 DAY))
+      ) THEN 1 ELSE 0 END FROM findtutor_premium_teachers sub_fpt WHERE sub_fpt.mail = t.email LIMIT 1) as teacherIsPremium`;
 
   // Add student info if premium
   if (hasPremium) {
@@ -464,6 +468,7 @@ const getAllPublicTeacherPosts = async (userId) => {
     // Ensure numeric types for ratings
     transformedPost.averageRating = parseFloat(post.averageRating) || 0;
     transformedPost.reviewCount = parseInt(post.reviewCount) || 0;
+    transformedPost.teacherIsPremium = post.teacherIsPremium === 1 || post.teacherIsPremium === true;
 
     return transformedPost;
   });
@@ -480,7 +485,8 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
   const studentData = await executeQuery(studentQuery, [teacherEmail]);
   const hasStudents = studentData?.length > 0 && studentData[0].ispaid === 1;
   const query = `
-    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country, s.profilePhoto ${
+    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country, s.profilePhoto,
+    s.hasPremium as studentIsPremium ${
       hasStudents
         ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country"
         : ""
@@ -540,6 +546,9 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
       link2: premiumStatus?.premiumData?.link2 || null,
       link3: premiumStatus?.premiumData?.link3 || null,
     };
+  }
+  if (post) {
+    post.teacherIsPremium = premiumStatus.hasPremium && premiumStatus.isPaid;
   }
   return post;
 };

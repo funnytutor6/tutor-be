@@ -45,7 +45,11 @@ const getPaginatedTeacherPosts = async ({
            t.phoneNumber, 
            t.cityOrTown, 
            t.country, 
-           t.profilePhoto
+           t.profilePhoto,
+           (SELECT CASE WHEN sub_fpt.ispaid = 1 AND (
+             sub_fpt.subscriptionStatus = 'active' OR 
+             (sub_fpt.stripeSubscriptionId IS NULL AND sub_fpt.paymentDate > DATE_SUB(NOW(), INTERVAL 30 DAY))
+           ) THEN 1 ELSE 0 END FROM findtutor_premium_teachers sub_fpt WHERE sub_fpt.mail = t.email LIMIT 1) as teacherIsPremium
     FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
     ${whereClause}
@@ -105,6 +109,7 @@ const getPaginatedStudents = async ({ page, pageSize, search }) => {
       s.cityOrTown,
       s.country,
       s.profilePhoto,
+      s.hasPremium as isPremium,
       s.created,
       s.updated
     FROM Students s
@@ -175,7 +180,8 @@ const getPaginatedStudentPosts = async ({
       s.phoneNumber,
       s.cityOrTown,
       s.country,
-      s.profilePhoto
+      s.profilePhoto,
+      s.hasPremium as studentIsPremium
     FROM StudentPosts sp
     JOIN Students s ON sp.studentId = s.id
     ${whereClause}
@@ -218,7 +224,11 @@ const getTeacherPostWithDetails = async (postId) => {
       t.profilePhoto,
       t.status AS teacherStatus,
       t.created AS teacherCreated,
-      t.updated AS teacherUpdated
+      t.updated AS teacherUpdated,
+      (SELECT CASE WHEN sub_fpt.ispaid = 1 AND (
+        sub_fpt.subscriptionStatus = 'active' OR 
+        (sub_fpt.stripeSubscriptionId IS NULL AND sub_fpt.paymentDate > DATE_SUB(NOW(), INTERVAL 30 DAY))
+      ) THEN 1 ELSE 0 END FROM findtutor_premium_teachers sub_fpt WHERE sub_fpt.mail = t.email LIMIT 1) as teacherIsPremium
     FROM TeacherPosts tp
     JOIN Teachers t ON tp.teacherId = t.id
     WHERE tp.id = ?
@@ -258,6 +268,7 @@ const getTeacherPostWithDetails = async (postId) => {
       country: post.country,
       profilePhoto: post.profilePhoto,
       status: post.teacherStatus,
+      isPremium: post.teacherIsPremium === 1 || post.teacherIsPremium === true,
       created: post.teacherCreated,
       updated: post.teacherUpdated,
     },
