@@ -37,6 +37,23 @@ const checkPurchaseStatus = async (teacherId, studentPostId) => {
 };
 
 /**
+ * Check if teacher has purchased access to ANY post from a given student
+ * @param {String} teacherId - Teacher ID
+ * @param {String} studentId - Student ID
+ * @returns {Promise<Object>} - Purchase status
+ */
+const checkPurchaseStatusByStudent = async (teacherId, studentId) => {
+  const checkQuery =
+    "SELECT * FROM TeacherPurchases WHERE teacherId = ? AND studentId = ? AND paymentStatus = 'paid' LIMIT 1";
+  const existing = await executeQuery(checkQuery, [teacherId, studentId]);
+
+  return {
+    hasPurchased: existing.length > 0,
+    purchase: existing.length > 0 ? existing[0] : null,
+  };
+};
+
+/**
  * Get teacher purchase details
  * @param {String} studentPostId - Student post ID
  * @param {String} teacherId - Teacher ID
@@ -85,6 +102,7 @@ const getTeacherPurchaseDetails = async (studentPostId, teacherId) => {
  * @returns {Promise<Object>} - Student contact information
  */
 const getStudentContact = async (postId, teacherId) => {
+  // First try exact post match
   const purchaseQuery = `
     SELECT tp.*, s.name, s.email, s.phoneNumber, sp.subject, sp.headline
     FROM TeacherPurchases tp
@@ -94,18 +112,40 @@ const getStudentContact = async (postId, teacherId) => {
   `;
   const purchases = await executeQuery(purchaseQuery, [postId, teacherId]);
 
-  if (purchases.length === 0) {
+  if (purchases.length > 0) {
+    const purchase = purchases[0];
+    return {
+      name: purchase.name,
+      email: purchase.email,
+      phoneNumber: purchase.phoneNumber,
+      subject: purchase.subject,
+      headline: purchase.headline,
+    };
+  }
+
+  // Fallback: check if teacher purchased ANY post from the same student
+  const crossPostQuery = `
+    SELECT s.name, s.email, s.phoneNumber, sp.subject, sp.headline
+    FROM StudentPosts sp
+    JOIN Students s ON sp.studentId = s.id
+    WHERE sp.id = ?
+      AND EXISTS (
+        SELECT 1 FROM TeacherPurchases tp2
+        WHERE tp2.teacherId = ? AND tp2.studentId = s.id AND tp2.paymentStatus = 'paid'
+      )
+  `;
+  const crossResults = await executeQuery(crossPostQuery, [postId, teacherId]);
+
+  if (crossResults.length === 0) {
     throw new Error("Contact access not purchased or not found");
   }
 
-  const purchase = purchases[0];
-
   return {
-    name: purchase.name,
-    email: purchase.email,
-    phoneNumber: purchase.phoneNumber,
-    subject: purchase.subject,
-    headline: purchase.headline,
+    name: crossResults[0].name,
+    email: crossResults[0].email,
+    phoneNumber: crossResults[0].phoneNumber,
+    subject: crossResults[0].subject,
+    headline: crossResults[0].headline,
   };
 };
 
@@ -253,12 +293,118 @@ const createOrUpdateTeacherPurchase = async (purchaseData) => {
   return purchaseId;
 };
 
+/**
+ * Get combined purchase history for a teacher (TeacherPurchases + ConnectionRequests)
+ * @param {String} teacherId - Teacher ID
+ * @returns {Promise<Array>} - Unified list of all contact unlocks
+ */
+const getTeacherPurchaseHistory = async (teacherId) => {
+  const query = `
+    (
+      SELECT 
+        tp.id, 
+        'post_purchase' as type,
+        s.name as studentName,
+        s.email as studentEmail,
+        s.phoneNumber as studentPhone,
+        sp.subject,
+        sp.headline,
+        tp.paymentAmount as amount,
+        tp.paymentStatus,
+        tp.purchasedAt as purchaseDate,
+        tp.stripeSessionId
+      FROM TeacherPurchases tp
+      JOIN Students s ON tp.studentId = s.id
+      JOIN StudentPosts sp ON tp.studentPostId = sp.id
+      WHERE tp.teacherId = ? AND tp.paymentStatus = 'paid'
+    )
+    UNION ALL
+    (
+      SELECT 
+        cr.id,
+        'connection_request' as type,
+        s.name as studentName,
+        s.email as studentEmail,
+        s.phoneNumber as studentPhone,
+        tp2.subject,
+        tp2.headline,
+        cr.paymentAmount as amount,
+        cr.paymentStatus,
+        cr.purchaseDate as purchaseDate,
+        cr.stripeSessionId
+      FROM ConnectionRequests cr
+      JOIN Students s ON cr.studentId = s.id
+      JOIN TeacherPosts tp2 ON cr.postId = tp2.id
+      WHERE cr.teacherId = ? AND cr.status = 'purchased'
+    )
+    ORDER BY purchaseDate DESC
+  `;
+  return await executeQuery(query, [teacherId, teacherId]);
+};
+
+/**
+ * Get all contact purchases for admin (paginated)
+ * @param {Object} options - { page, pageSize, search }
+ * @returns {Promise<Object>} - { purchases, total, page, pageSize }
+ */
+const getAllContactPurchasesForAdmin = async ({ page = 1, pageSize = 20, search = "" }) => {
+  const offset = (page - 1) * pageSize;
+
+  let whereClause = "";
+  const params = [];
+
+  if (search) {
+    whereClause = `WHERE t.name LIKE ? OR t.email LIKE ? OR s.name LIKE ? OR s.email LIKE ? OR sp.subject LIKE ?`;
+    const searchPattern = `%${search}%`;
+    params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+  }
+
+  const countQuery = `
+    SELECT COUNT(*) as total
+    FROM TeacherPurchases tp
+    JOIN Teachers t ON tp.teacherId = t.id
+    JOIN Students s ON tp.studentId = s.id
+    JOIN StudentPosts sp ON tp.studentPostId = sp.id
+    ${whereClause}
+  `;
+  const countResult = await executeQuery(countQuery, params);
+  const total = countResult[0].total;
+
+  const dataQuery = `
+    SELECT 
+      tp.id,
+      t.name as teacherName,
+      t.email as teacherEmail,
+      s.name as studentName,
+      s.email as studentEmail,
+      sp.subject as postSubject,
+      sp.headline as postHeadline,
+      tp.paymentAmount as amount,
+      tp.paymentStatus,
+      tp.purchasedAt as purchaseDate,
+      tp.stripeSessionId
+    FROM TeacherPurchases tp
+    JOIN Teachers t ON tp.teacherId = t.id
+    JOIN Students s ON tp.studentId = s.id
+    JOIN StudentPosts sp ON tp.studentPostId = sp.id
+    ${whereClause}
+    ORDER BY tp.purchasedAt DESC
+    LIMIT ? OFFSET ?
+  `;
+  const purchases = await executeQuery(dataQuery, [...params, pageSize, offset]);
+
+  return { purchases, total, page, pageSize };
+};
+
 module.exports = {
   getTeacherPurchases,
   checkPurchaseStatus,
+  checkPurchaseStatusByStudent,
   getTeacherPurchaseDetails,
   getStudentContact,
   getStudentContactForPremium,
   createFreeAccessPurchase,
   createOrUpdateTeacherPurchase,
+  getTeacherPurchaseHistory,
+  getAllContactPurchasesForAdmin,
 };

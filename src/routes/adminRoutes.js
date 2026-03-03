@@ -46,6 +46,8 @@ router.get("/dashboard/metrics", adminController.getDashboardMetrics);
 // Admin: get reports data
 router.get("/reports", adminController.getReportsData);
 
+// Admin: get all contact purchase transactions
+router.get("/contact-purchases", adminController.getAllContactPurchasesForAdmin);
 
 // Admin: get admin profile
 router.get("/profile", adminController.getAdminProfile);

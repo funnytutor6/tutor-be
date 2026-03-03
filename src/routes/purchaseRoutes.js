@@ -9,6 +9,11 @@ const {
 const { authenticate } = require("../middleware/authMiddleware");
 
 router.get(
+  "/buy/teacher-purchases/history",
+  authenticate,
+  purchaseController.getTeacherPurchaseHistory
+);
+router.get(
   "/buy/teacher-purchases/teacher/:teacherId",
   purchaseController.getTeacherPurchases
 );

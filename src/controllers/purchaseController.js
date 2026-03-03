@@ -40,7 +40,7 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
     const { studentPostId, teacherId, studentId } = req.body;
     const teacherEmail = req?.user?.email;
 
-    // Check if purchase already exists
+    // Check if purchase already exists for this exact post
     const checkResult = await purchaseService.checkPurchaseStatus(
       teacherId,
       studentPostId
@@ -51,6 +51,26 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
         "Contact access already purchased for this post",
         400
       );
+    }
+
+    // Check if teacher already purchased ANY post from this student (per-student dedup)
+    const studentCheck = await purchaseService.checkPurchaseStatusByStudent(
+      teacherId,
+      studentId
+    );
+    if (studentCheck.hasPurchased) {
+      await purchaseService.createFreeAccessPurchase({
+        studentPostId,
+        teacherId,
+        studentId,
+      });
+
+      return successResponse(res, {
+        message: "Contact already unlocked for this student",
+        freeAccess: true,
+        sessionId: null,
+        url: null,
+      });
     }
 
     // Check if teacher has active subscription/premium
@@ -191,6 +211,24 @@ exports.getStudentContact = async (req, res) => {
       return errorResponse(res, error.message, 403);
     }
     return errorResponse(res, "Failed to fetch student contact", 500);
+  }
+};
+
+/**
+ * Get combined purchase history for a teacher
+ */
+exports.getTeacherPurchaseHistory = async (req, res) => {
+  try {
+    const teacherId = req?.user?.id;
+    if (!teacherId) {
+      return errorResponse(res, "Unauthorized", 401);
+    }
+
+    const history = await purchaseService.getTeacherPurchaseHistory(teacherId);
+    return successResponse(res, history);
+  } catch (error) {
+    logger.error("Error fetching purchase history:", error);
+    return errorResponse(res, "Failed to fetch purchase history", 500);
   }
 };
 

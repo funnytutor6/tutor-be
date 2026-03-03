@@ -1,4 +1,5 @@
 const adminService = require("../services/adminService");
+const purchaseService = require("../services/purchaseService");
 const { successResponse, errorResponse } = require("../utils/responseHelper");
 const logger = require("../utils/logger");
 const {
@@ -381,6 +382,30 @@ exports.getReportsData = async (req, res) => {
   } catch (error) {
     logger.error("Error fetching reports data:", error);
     return errorResponse(res, "Failed to fetch reports data", 500);
+  }
+};
+
+/**
+ * Get all contact purchase transactions
+ * GET /api/admin/contact-purchases
+ */
+exports.getAllContactPurchasesForAdmin = async (req, res) => {
+  try {
+    const validation = validatePaginationSearch(req.query);
+    if (!validation.valid) {
+      return errorResponse(res, validation.errors.join(", "), 400);
+    }
+    const { page, pageSize, search } = validation.value;
+
+    const result = await purchaseService.getAllContactPurchasesForAdmin({
+      page,
+      pageSize,
+      search,
+    });
+    return successResponse(res, result);
+  } catch (error) {
+    logger.error("Error fetching contact purchases for admin:", error);
+    return errorResponse(res, "Failed to fetch contact purchases", 500);
   }
 };
 

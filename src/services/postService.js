@@ -480,9 +480,9 @@ const getAllStudentPublicPosts = async (teacherEmail) => {
   const studentData = await executeQuery(studentQuery, [teacherEmail]);
   const hasStudents = studentData?.length > 0 && studentData[0].ispaid === 1;
   const query = `
-    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country ${
+    SELECT sp.*, s.name as studentName, s.cityOrTown, s.country, s.profilePhoto ${
       hasStudents
-        ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country, s.profilePhoto"
+        ? ", s.id as studentId, s.name as studentName, s.email as studentEmail, s.phoneNumber, s.cityOrTown, s.country"
         : ""
     }
     FROM StudentPosts sp

@@ -339,6 +339,7 @@ const getDashboardMetrics = async () => {
     paidStudentSubscriptionsResult,
     totalStudentSubscriptionsResult,
     newsletterSubscribersResult,
+    contactPurchasesResult,
   ] = await Promise.all([
     executeQuery(
       "SELECT COUNT(*) as count FROM Teachers t WHERE EXISTS (SELECT 1 FROM OTPVerifications o WHERE o.userId = t.id AND o.userType = 'teacher' AND o.isVerified = 1)"
@@ -358,6 +359,9 @@ const getDashboardMetrics = async () => {
     ),
     executeQuery("SELECT COUNT(*) as count FROM findtitor_premium_student"),
     executeQuery("SELECT COUNT(*) as count FROM findtutor_subcriptions"),
+    executeQuery(
+      "SELECT COUNT(*) as count FROM TeacherPurchases WHERE paymentStatus = 'paid'"
+    ),
   ]);
 
   return {
@@ -371,6 +375,7 @@ const getDashboardMetrics = async () => {
     paidStudentSubscriptions: paidStudentSubscriptionsResult[0]?.count || 0,
     totalStudentSubscriptions: totalStudentSubscriptionsResult[0]?.count || 0,
     newsletterSubscribers: newsletterSubscribersResult[0]?.count || 0,
+    contactPurchases: contactPurchasesResult[0]?.count || 0,
   };
 };
 
