@@ -602,6 +602,33 @@ const setupDatabase = async () => {
       logger.warn("Error creating default admin:", adminError.message);
     }
 
+    // Create funnystudylearning admin account if it doesn't exist
+    try {
+      const bcrypt = require("bcrypt");
+      const fsAdminEmail = "info@funnystudylearning.com";
+      const fsAdminPassword = "0N8c0TmjFTRz";
+      const fsHashedPassword = await bcrypt.hash(fsAdminPassword, 10);
+      const fsAdminId = await generateId();
+
+      const [fsExisting] = await connection.query(
+        "SELECT * FROM Admins WHERE email = ?",
+        [fsAdminEmail],
+      );
+
+      if (fsExisting.length === 0) {
+        await connection.query(
+          `INSERT INTO Admins (id, name, email, password, role) 
+           VALUES (?, 'Funny Study Learning', ?, ?, 'admin')`,
+          [fsAdminId, fsAdminEmail, fsHashedPassword],
+        );
+        logger.info("Funnystudylearning admin created:", fsAdminEmail);
+      } else {
+        logger.info("Funnystudylearning admin already exists");
+      }
+    } catch (adminError) {
+      logger.warn("Error creating funnystudylearning admin:", adminError.message);
+    }
+
     // Student Posts Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS StudentPosts (
