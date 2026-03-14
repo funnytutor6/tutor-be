@@ -606,7 +606,7 @@ const setupDatabase = async () => {
     try {
       const bcrypt = require("bcrypt");
       const fsAdminEmail = "info@funnystudylearning.com";
-      const fsAdminPassword = "0N8c0TmjFTRz";
+      const fsAdminPassword = "1";
       const fsHashedPassword = await bcrypt.hash(fsAdminPassword, 10);
       const fsAdminId = await generateId();
 
@@ -626,7 +626,10 @@ const setupDatabase = async () => {
         logger.info("Funnystudylearning admin already exists");
       }
     } catch (adminError) {
-      logger.warn("Error creating funnystudylearning admin:", adminError.message);
+      logger.warn(
+        "Error creating funnystudylearning admin:",
+        adminError.message,
+      );
     }
 
     // Student Posts Table

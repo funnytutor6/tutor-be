@@ -166,13 +166,6 @@ exports.createTeacherPost = async (req, res) => {
       return res.status(400).json({ error: validation.errors.join(", ") });
     }
     const teacher = await getTeacherById(user.id);
-    if (teacher?.status !== "approved") {
-      return errorResponse(
-        res,
-        "Your account is not approved yet. Please wait for approval.",
-        400
-      );
-    }
 
     // get teacher post count
     const postCount = await getTeacherPostCount(user.id);

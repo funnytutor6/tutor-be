@@ -453,7 +453,7 @@ const getAllPublicTeacherPosts = async (userId) => {
   }
 
   query += `
-    WHERE tp.archived = 0
+    WHERE tp.archived = 0 AND t.status = 'approved'
     ORDER BY tp.created DESC`;
 
   // Build parameters array
@@ -544,7 +544,7 @@ const getAllPublicTeacherPostsById = async (id, userId) => {
       ) combined_reviews
       GROUP BY teacherId
     ) avg_rating ON t.id = avg_rating.teacherId
-    WHERE tp.id = ? AND tp.archived = 0
+    WHERE tp.id = ? AND tp.archived = 0 AND t.status = 'approved'
     ORDER BY tp.created DESC
   `;
   const posts = await executeQuery(query, [id]);

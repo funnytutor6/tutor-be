@@ -681,7 +681,20 @@ const verifyEmailToken = async (userId, userType, email, otpCode) => {
     };
   }
 
-  // For students: auto-login after email verification (no WhatsApp needed)
+  // For students: they still need WhatsApp OTP verification after email
+  if (userType === "student") {
+    return {
+      verified: true,
+      message: "Email verified successfully",
+      requiresOTPVerification: true,
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
+      userType: "student",
+      userName: user.name,
+    };
+  }
+
+  // Fallback auto-login (should not reach here with current userTypes)
   const premiumStatus = await getStudentPremiumStatus(user.email);
   const token = generateToken({
     id: user.id,
