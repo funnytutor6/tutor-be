@@ -12,5 +12,6 @@ router.put(
   upload.single("profilePhoto"),
   studentController.updateStudent
 );
+router.delete("/:id", authenticate, studentController.deleteStudent);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const { executeQuery, generateId } = require("./databaseService");
+const { pool } = require("../config/database");
 const logger = require("../utils/logger");
 
 /**
@@ -133,8 +134,50 @@ const getAllStudents = async () => {
   return students;
 };
 
+/**
+ * Delete student account and related records
+ * @param {String} id - Student ID
+ * @returns {Promise<void>}
+ */
+const deleteStudent = async (id) => {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const studentQuery = "SELECT id, email FROM Students WHERE id = ?";
+    const [students] = await connection.query(studentQuery, [id]);
+
+    if (students.length === 0) {
+      throw new Error("Student not found");
+    }
+
+    const studentEmail = students[0].email;
+
+    await connection.query(
+      "DELETE FROM findtitor_premium_student WHERE email = ?",
+      [studentEmail],
+    );
+    await connection.query(
+      "DELETE FROM OTPVerifications WHERE userId = ? AND userType = 'student'",
+      [id],
+    );
+    await connection.query("DELETE FROM Students WHERE id = ?", [id]);
+
+    await connection.commit();
+    logger.info("Student account deleted successfully:", id);
+  } catch (error) {
+    await connection.rollback();
+    logger.error("Error deleting student account:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   getStudentById,
   updateStudent,
   getAllStudents,
+  deleteStudent,
 };

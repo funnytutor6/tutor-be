@@ -17,7 +17,13 @@ const generateReviewToken = async (teacherId) => {
   const link = `${FRONTEND_URL}/review/public/${token}`;
   logger.info(`Review token generated for teacher ${teacherId}`);
 
-  return { id, token, link, createdAt: new Date().toISOString(), isActive: true };
+  return {
+    id,
+    token,
+    link,
+    createdAt: new Date().toISOString(),
+    isActive: true,
+  };
 };
 
 const validateToken = async (token) => {
@@ -84,7 +90,12 @@ const deactivateToken = async (tokenId, teacherId) => {
   return true;
 };
 
-const submitPublicReview = async ({ token, reviewerName, rating, reviewText }) => {
+const submitPublicReview = async ({
+  token,
+  reviewerName,
+  rating,
+  reviewText,
+}) => {
   const validation = await validateToken(token);
 
   if (!validation.valid) {

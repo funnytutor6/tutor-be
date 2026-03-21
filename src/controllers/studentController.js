@@ -64,3 +64,33 @@ exports.getAllStudents = async (req, res) => {
     return errorResponse(res, "Failed to fetch students", 500);
   }
 };
+
+/**
+ * Delete student account
+ */
+exports.deleteStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (user.id !== id && user.role !== "admin") {
+      return errorResponse(
+        res,
+        "Unauthorized: You can only delete your own account",
+        403,
+      );
+    }
+
+    await studentService.deleteStudent(id);
+
+    return successResponse(res, {
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    logger.error("Error deleting student account:", error);
+    if (error.message.includes("not found")) {
+      return errorResponse(res, error.message, 404);
+    }
+    return errorResponse(res, "Failed to delete account", 500);
+  }
+};

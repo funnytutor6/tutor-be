@@ -11,36 +11,36 @@ const { authenticate } = require("../middleware/authMiddleware");
 router.get(
   "/buy/teacher-purchases/history",
   authenticate,
-  purchaseController.getTeacherPurchaseHistory
+  purchaseController.getTeacherPurchaseHistory,
 );
 router.get(
   "/buy/teacher-purchases/teacher/:teacherId",
-  purchaseController.getTeacherPurchases
+  purchaseController.getTeacherPurchases,
 );
 router.post(
   "/buy/teacher-purchases/create-checkout-session",
   authenticate,
   validate(validateTeacherPurchase),
-  purchaseController.createTeacherPurchaseCheckout
+  purchaseController.createTeacherPurchaseCheckout,
 );
 router.get(
   "/buy/teacher-purchases/check/:teacherId/:studentPostId",
-  purchaseController.checkPurchaseStatus
+  purchaseController.checkPurchaseStatus,
 );
 router.get(
   "/buy/teacher-purchases/:studentPostId/:teacherId",
-  purchaseController.getTeacherPurchaseDetails
+  purchaseController.getTeacherPurchaseDetails,
 );
 router.get(
   "/buy/posts/:postId/contact/:teacherId",
   authenticate,
-  purchaseController.getStudentContact
+  purchaseController.getStudentContact,
 );
 router.post(
   "/create-checkout-session",
   authenticate,
   validate(validateContactPurchase),
-  purchaseController.createContactPurchaseCheckout
+  purchaseController.createContactPurchaseCheckout,
 );
 
 module.exports = router;

@@ -395,6 +395,7 @@ const getAllPublicTeacherPosts = async (userId) => {
       t.name as teacherName, 
       t.cityOrTown, 
       t.country,
+      t.profilePhoto,
       COALESCE(avg_rating.averageRating, 0) as averageRating,
       COALESCE(avg_rating.reviewCount, 0) as reviewCount,
       (SELECT CASE WHEN sub_fpt.ispaid = 1 AND (
@@ -411,7 +412,6 @@ const getAllPublicTeacherPosts = async (userId) => {
       s.phoneNumber, 
       s.cityOrTown as studentCityOrTown, 
       s.country as studentCountry, 
-      t.profilePhoto,
       t.email`;
   }
 

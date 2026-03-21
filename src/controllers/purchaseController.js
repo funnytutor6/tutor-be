@@ -41,23 +41,31 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
     const { studentPostId, teacherId, studentId } = req.body;
     const teacherEmail = req?.user?.email;
 
+    const teacher = await teacherService.getTeacherById(teacherId);
+    if (teacher.status !== "approved") {
+      return errorResponse(
+        res,
+        "Your Tutor profile is pending admin approval.",
+        403,
+      );
+    }
     // Check if purchase already exists for this exact post
     const checkResult = await purchaseService.checkPurchaseStatus(
       teacherId,
-      studentPostId
+      studentPostId,
     );
     if (checkResult.hasPurchased) {
       return errorResponse(
         res,
         "Contact access already purchased for this post",
-        400
+        400,
       );
     }
 
     // Check if teacher already purchased ANY post from this student (per-student dedup)
     const studentCheck = await purchaseService.checkPurchaseStatusByStudent(
       teacherId,
-      studentId
+      studentId,
     );
     if (studentCheck.hasPurchased) {
       await purchaseService.createFreeAccessPurchase({
@@ -80,9 +88,8 @@ exports.createTeacherPurchaseCheckout = async (req, res) => {
       try {
         const subscriptionStatus =
           await subscriptionService.getSubscriptionStatus(teacherEmail);
-        const premiumStatus = await premiumService.getTeacherPremiumStatus(
-          teacherEmail
-        );
+        const premiumStatus =
+          await premiumService.getTeacherPremiumStatus(teacherEmail);
         hasActiveSubscription =
           subscriptionStatus?.isActive || premiumStatus?.isPaid;
       } catch (error) {
@@ -135,7 +142,7 @@ exports.checkPurchaseStatus = async (req, res) => {
     const { teacherId, studentPostId } = req.params;
     const result = await purchaseService.checkPurchaseStatus(
       teacherId,
-      studentPostId
+      studentPostId,
     );
 
     return successResponse(res, result);
@@ -153,7 +160,7 @@ exports.getTeacherPurchaseDetails = async (req, res) => {
     const { studentPostId, teacherId } = req.params;
     const purchase = await purchaseService.getTeacherPurchaseDetails(
       studentPostId,
-      teacherId
+      teacherId,
     );
 
     return successResponse(res, purchase);
@@ -180,9 +187,8 @@ exports.getStudentContact = async (req, res) => {
       try {
         const subscriptionStatus =
           await subscriptionService.getSubscriptionStatus(teacherEmail);
-        const premiumStatus = await premiumService.getTeacherPremiumStatus(
-          teacherEmail
-        );
+        const premiumStatus =
+          await premiumService.getTeacherPremiumStatus(teacherEmail);
         hasActiveSubscription =
           subscriptionStatus?.isActive || premiumStatus?.isPaid;
       } catch (error) {
@@ -194,7 +200,7 @@ exports.getStudentContact = async (req, res) => {
     if (hasActiveSubscription) {
       const contact = await purchaseService.getStudentContactForPremium(
         postId,
-        teacherId
+        teacherId,
       );
       return successResponse(res, contact);
     }
@@ -257,9 +263,8 @@ exports.createContactPurchaseCheckout = async (req, res) => {
     try {
       const subscriptionStatus =
         await subscriptionService.getSubscriptionStatus(teacherEmail);
-      const premiumStatus = await premiumService.getTeacherPremiumStatus(
-        teacherEmail
-      );
+      const premiumStatus =
+        await premiumService.getTeacherPremiumStatus(teacherEmail);
       hasActiveSubscription =
         subscriptionStatus?.isActive || premiumStatus?.isPaid;
     } catch (error) {
@@ -271,13 +276,14 @@ exports.createContactPurchaseCheckout = async (req, res) => {
       await connectionService.purchaseConnectionRequest(
         requestId,
         userId,
-        null
+        null,
       );
 
       // Send acceptance email to student asynchronously
       (async () => {
         try {
-          const request = await connectionService.getConnectionRequestById(requestId);
+          const request =
+            await connectionService.getConnectionRequestById(requestId);
           if (request) {
             await emailService.sendConnectionRequestAccepted({
               studentEmail: request.studentEmail,
@@ -288,7 +294,10 @@ exports.createContactPurchaseCheckout = async (req, res) => {
             });
           }
         } catch (error) {
-          logger.error("Error sending acceptance email after premium reveal:", error);
+          logger.error(
+            "Error sending acceptance email after premium reveal:",
+            error,
+          );
         }
       })();
 

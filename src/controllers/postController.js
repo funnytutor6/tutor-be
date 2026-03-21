@@ -64,7 +64,7 @@ exports.createStudentPost = async (req, res) => {
         message: "Post created successfully",
         postId,
       },
-      201
+      201,
     );
   } catch (error) {
     logger.error("Error creating student post:", error);
@@ -182,7 +182,7 @@ exports.createTeacherPost = async (req, res) => {
         message: "Post created successfully",
         postId,
       },
-      201
+      201,
     );
   } catch (error) {
     logger.error("Error creating teacher post:", error);
@@ -301,7 +301,7 @@ exports.getAllStudentPublicPosts = async (req, res) => {
     const user = req.user;
 
     const posts = await postService.getAllStudentPublicPosts(
-      user?.email || null
+      user?.email || null,
     );
     return successResponse(res, posts);
   } catch (error) {
@@ -319,7 +319,7 @@ exports.getAllPublicTeacherPostsById = async (req, res) => {
     const user = req.user;
     const posts = await postService.getAllPublicTeacherPostsById(
       id,
-      user?.id || null
+      user?.id || null,
     );
     return successResponse(res, posts);
   } catch (error) {
