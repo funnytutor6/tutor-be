@@ -41,8 +41,19 @@ const getTeacherById = async (id) => {
  * @returns {Promise<Object>} - Updated teacher data
  */
 const updateTeacher = async (id, updateData) => {
-  const { name, email, phoneNumber, cityOrTown, country, profilePhoto, about } =
-    updateData;
+  const {
+    name,
+    email,
+    phoneNumber,
+    cityOrTown,
+    country,
+    profilePhoto,
+    profilePhotoUrl,
+    about,
+  } = updateData;
+
+  // FE sends Cloudinary URL as profilePhotoUrl; DB column is profilePhoto.
+  const resolvedProfilePhoto = profilePhotoUrl ?? profilePhoto;
 
   // Validate 'about' field if provided
   if (about !== undefined) {
@@ -114,9 +125,9 @@ const updateTeacher = async (id, updateData) => {
     updateFields.push("country = ?");
     updateValues.push(country);
   }
-  if (profilePhoto !== undefined) {
+  if (resolvedProfilePhoto !== undefined) {
     updateFields.push("profilePhoto = ?");
-    updateValues.push(profilePhoto);
+    updateValues.push(resolvedProfilePhoto);
   }
   if (about !== undefined) {
     updateFields.push("about = ?");
